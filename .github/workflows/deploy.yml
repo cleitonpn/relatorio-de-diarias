@@ -25,20 +25,37 @@ jobs:
       - name: Gerar o site
         run: npm run build
 
-      # A action de Hosting publica SÓ o site. As regras de segurança e os
-      # índices precisam de um deploy próprio — sem isso o app sobe no ar
-      # mas o banco continua negando tudo.
-      - name: Publicar regras e índices
+      - name: Preparar credencial do Firebase
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/chave.json"
-          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/chave.json"
-          npx --yes firebase-tools@latest deploy \
-            --only firestore:rules,firestore:indexes,storage \
-            --project diarias-app-cd76f \
-            --non-interactive
-          rm -f "$RUNNER_TEMP/chave.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/chave.json" >> "$GITHUB_ENV"
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      # As regras do Firestore são o que impede um empreiteiro de ver os dados
+      # de outro. Se este passo falhar, o deploy TEM que falhar junto.
+      - name: Publicar regras e índices do Firestore
+        run: |
+          npx --yes firebase-tools@latest deploy \
+            --only firestore:rules,firestore:indexes \
+            --project diarias-app-cd76f \
+            --non-interactive
+
+      # O Storage ainda não é usado pelo app (nenhuma foto é enviada por
+      # enquanto). Enquanto o bucket não estiver liberado para a conta de
+      # serviço, este passo avisa e segue — nunca derruba o deploy do resto.
+      - name: Publicar regras do Storage (opcional)
+        continue-on-error: true
+        run: |
+          npx --yes firebase-tools@latest deploy \
+            --only storage \
+            --project diarias-app-cd76f \
+            --non-interactive \
+          || echo "AVISO: regras do Storage não publicadas. Libere o bucket para a conta de serviço quando o envio de fotos entrar."
+
+      - name: Remover credencial
+        if: always()
+        run: rm -f "$RUNNER_TEMP/chave.json"
 
       - name: Publicar o site
         uses: FirebaseExtended/action-hosting-deploy@v0
