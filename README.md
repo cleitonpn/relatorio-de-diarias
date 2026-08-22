@@ -21,11 +21,14 @@ e quanto sobra pra ele** — e pagar a equipe pelo PIX sem errar valor.
 | Lista de presença com meia/inteira/1½/dobrada | ✅ |
 | Gastos: comida, combustível, estacionamento, material… | ✅ |
 | Resultado: receita × custo × lucro, em linguagem de leigo | ✅ |
+| **Meu dinheiro**: consolidado por período, todas as feiras juntas | ✅ |
 | Alerta "ainda cabem N diárias antes do lucro acabar" | ✅ |
 | Vales/adiantamentos com desconto automático no acerto | ✅ |
 | Acerto por pessoa + **PIX copia e cola** + QR + envio no WhatsApp | ✅ |
 | Funciona offline (pavilhão sem sinal) | ✅ |
 | Instalável como app (PWA) | ✅ |
+| Layout de desktop com menu lateral | ✅ |
+| Nome próprio editável (independente da conta Google) | ✅ |
 | **Painel admin**: contas, planos, descontos, exclusão, indicações | ✅ |
 | **Modo demonstração**: enche sua conta para testar todas as telas | ✅ |
 | Tela do funcionário (link + PIN) | ⏳ próxima etapa |
@@ -153,6 +156,10 @@ src/
   pages/       telas
 firestore.rules  isolamento entre empreiteiros (no servidor, não na tela)
 ```
+
+**Telas em duas larguras:** no celular, barra de abas embaixo (onde o polegar
+alcança); a partir de `lg`, menu lateral fixo e coluna mais larga. É o mesmo
+código — só o `MenuLateral` e a `BarraInferior` se revezam.
 
 **Regra de linguagem:** o app fala como o empreiteiro fala. É "você recebe",
 "você gastou", "sobrou pra você" — nunca "receita bruta" ou "margem de contribuição".

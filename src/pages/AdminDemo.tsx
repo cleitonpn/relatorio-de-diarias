@@ -19,7 +19,26 @@ export function PainelDemo() {
   const toast = useToast()
   const [ocupado, setOcupado] = useState<'criar' | 'limpar' | null>(null)
 
-  if (!perfil) return null
+  // Admin sem conta de empreiteiro ainda não tem onde semear os dados.
+  if (!perfil) {
+    return (
+      <div className="card p-5">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="shrink-0 w-11 h-11 rounded-2xl bg-raised text-muted grid place-items-center">
+            <Sparkles size={20} />
+          </div>
+          <div>
+            <div className="font-bold text-[16px]">Modo demonstração</div>
+            <div className="text-[13.5px] text-muted">Precisa de uma conta de teste</div>
+          </div>
+        </div>
+        <p className="text-[13px] text-muted leading-relaxed">
+          Crie sua conta de empreiteiro (o botão fica no fim desta página) para encher o app
+          com dados e conferir todas as telas.
+        </p>
+      </div>
+    )
+  }
 
   async function criar() {
     setOcupado('criar')

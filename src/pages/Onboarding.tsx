@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, Loader2, LogOut } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Campo, Selecao } from '@/components/ui/Campo'
 
@@ -15,8 +15,9 @@ const RAMOS = [
 ]
 
 /** Primeiro contato: só o essencial. Cada campo a mais aqui é gente desistindo. */
-export function Onboarding() {
+export function Onboarding({ aoVoltar }: { aoVoltar?: () => void } = {}) {
   const { criarEmpresa, sair, usuarioAuth } = useAuth()
+  const [nomePessoa, setNomePessoa] = useState(usuarioAuth?.displayName ?? '')
   const [nome, setNome] = useState('')
   const [ramo, setRamo] = useState<string | null>(null)
   const [cidade, setCidade] = useState('')
@@ -24,13 +25,14 @@ export function Onboarding() {
   const [erro, setErro] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
 
-  const podeSeguir = nome.trim().length >= 2 && !!ramo && cidade.trim().length >= 2
+  const podeSeguir =
+    nomePessoa.trim().length >= 2 && nome.trim().length >= 2 && !!ramo && cidade.trim().length >= 2
 
   async function enviar() {
     setErro(null)
     setOcupado(true)
     try {
-      await criarEmpresa({ nome, ramo: ramo!, cidade, codigoIndicacao: codigo })
+      await criarEmpresa({ nome, nomePessoa, ramo: ramo!, cidade, codigoIndicacao: codigo })
     } catch (e) {
       setErro((e as Error).message || 'Não deu para criar. Tente de novo.')
       setOcupado(false)
@@ -40,12 +42,21 @@ export function Onboarding() {
   return (
     <div className="min-h-dvh bg-canvas">
       <div className="max-w-md mx-auto px-5 py-10 safe-top">
-        <button
-          onClick={sair}
-          className="flex items-center gap-1.5 text-[14px] font-medium text-muted mb-8"
-        >
-          <LogOut size={16} /> Sair
-        </button>
+        {aoVoltar ? (
+          <button
+            onClick={aoVoltar}
+            className="flex items-center gap-1.5 text-[14px] font-medium text-muted mb-8"
+          >
+            <ArrowLeft size={16} /> Voltar para a administração
+          </button>
+        ) : (
+          <button
+            onClick={sair}
+            className="flex items-center gap-1.5 text-[14px] font-medium text-muted mb-8"
+          >
+            <LogOut size={16} /> Sair
+          </button>
+        )}
 
         <h1 className="text-[28px] font-extrabold leading-tight">
           Bem-vindo{usuarioAuth?.displayName ? `, ${usuarioAuth.displayName.split(' ')[0]}` : ''}!
@@ -55,6 +66,15 @@ export function Onboarding() {
         </p>
 
         <div className="mt-8 space-y-6 animate-fade-up">
+          <Campo
+            rotulo="Seu nome"
+            placeholder="Como você quer ser chamado"
+            value={nomePessoa}
+            onChange={(e) => setNomePessoa(e.target.value)}
+            dica="Pode ser diferente do nome da sua conta Google"
+            autoComplete="name"
+          />
+
           <Campo
             rotulo="Nome do seu negócio"
             placeholder="Ex.: Tapeçaria do Zé"

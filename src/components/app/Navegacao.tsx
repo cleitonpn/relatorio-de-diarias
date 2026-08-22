@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, HandCoins, Home, Settings, Users } from 'lucide-react'
+import { ArrowLeft, CalendarDays, HandCoins, Home, Settings, Users, Wallet } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
@@ -19,7 +19,7 @@ export function BarraTopo({
   const navigate = useNavigate()
   return (
     <header className="sticky top-0 z-30 bg-canvas/85 backdrop-blur-xl border-b border-line/70 safe-top">
-      <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-3">
+      <div className="max-w-2xl lg:max-w-3xl mx-auto px-4 h-16 flex items-center gap-3">
         {voltarPara !== undefined && (
           <button
             onClick={() => (typeof voltarPara === 'number' ? navigate(voltarPara) : navigate(voltarPara))}
@@ -41,18 +41,23 @@ export function BarraTopo({
 
 /* ------------------------------ Barra inferior ----------------------------- */
 
+/**
+ * Cinco abas é o limite do polegar. "Meu dinheiro" entrou no lugar de Ajustes,
+ * que virou a engrenagem no topo — configuração se mexe uma vez, o resultado
+ * ele quer ver toda semana.
+ */
 const ABAS = [
   { para: '/', rotulo: 'Hoje', Icone: Home },
   { para: '/feiras', rotulo: 'Feiras', Icone: CalendarDays },
+  { para: '/dinheiro', rotulo: 'Dinheiro', Icone: Wallet },
   { para: '/equipe', rotulo: 'Equipe', Icone: Users },
   { para: '/pagamentos', rotulo: 'Pagar', Icone: HandCoins },
-  { para: '/ajustes', rotulo: 'Ajustes', Icone: Settings },
 ]
 
 export function BarraInferior({ aviso }: { aviso?: number }) {
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 bg-surface/95 backdrop-blur-xl border-t border-line safe-bottom">
-      <div className="max-w-2xl mx-auto grid grid-cols-5">
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-surface/95 backdrop-blur-xl border-t border-line safe-bottom">
+      <div className="max-w-2xl lg:max-w-3xl mx-auto grid grid-cols-5">
         {ABAS.map(({ para, rotulo, Icone }) => (
           <NavLink
             key={para}
@@ -90,5 +95,59 @@ export function BarraInferior({ aviso }: { aviso?: number }) {
 
 /** Espaço para o conteúdo não ficar embaixo da barra. */
 export function EspacoBarra() {
-  return <div className="h-[84px]" aria-hidden />
+  return <div className="h-[84px] lg:h-10" aria-hidden />
+}
+
+/* ------------------------------ Menu lateral ------------------------------ */
+
+const ABAS_DESKTOP = [
+  ...ABAS,
+  { para: '/ajustes', rotulo: 'Ajustes', Icone: Settings },
+]
+
+/**
+ * Em tela grande a barra de baixo não faz sentido: o polegar não está lá.
+ * O mesmo conjunto de destinos vira um menu lateral fixo, com espaço para o
+ * rótulo por extenso.
+ */
+export function MenuLateral() {
+  return (
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-line bg-surface z-40">
+      <div className="px-6 py-6 flex items-center gap-3">
+        <div
+          className="w-10 h-10 rounded-2xl grid place-items-center"
+          style={{ backgroundImage: 'linear-gradient(135deg, #6366F1 0%, #312E81 100%)' }}
+        >
+          <svg viewBox="0 0 64 64" className="w-6 h-6">
+            <path d="M18 42V26l14-8 14 8v16" fill="none" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M26 42v-9h12v9" fill="none" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <span className="text-[19px] font-extrabold">Empreita</span>
+      </div>
+
+      <nav className="flex-1 px-3 space-y-1">
+        {ABAS_DESKTOP.map(({ para, rotulo, Icone }) => (
+          <NavLink
+            key={para}
+            to={para}
+            end={para === '/'}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 h-12 px-3.5 rounded-2xl text-[15px] font-semibold transition',
+                isActive ? 'bg-brand-soft text-brand-ink' : 'text-muted hover:bg-raised',
+              )
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Icone size={21} strokeWidth={isActive ? 2.5 : 2} />
+                {rotulo}
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+    </aside>
+  )
 }

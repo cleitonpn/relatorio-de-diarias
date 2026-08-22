@@ -82,7 +82,7 @@ export function FeiraDetalhe() {
 
       {/* Abas */}
       <div className="sticky top-16 z-20 bg-canvas/85 backdrop-blur-xl border-b border-line/70">
-        <div className="max-w-2xl mx-auto px-4">
+        <div className="max-w-2xl lg:max-w-3xl mx-auto px-4">
           <div className="flex gap-1">
             {ABAS.map((a) => (
               <button
@@ -103,7 +103,7 @@ export function FeiraDetalhe() {
         </div>
       </div>
 
-      <main className="max-w-2xl mx-auto px-4 pt-4">
+      <main className="max-w-2xl lg:max-w-3xl mx-auto px-4 pt-4">
         {aba === 'resultado' && resultado && (
           <AbaResultado
             resultado={resultado}

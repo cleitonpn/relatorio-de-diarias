@@ -17,12 +17,14 @@ import { mostraCobranca } from '@/lib/platform'
 import { plano, PLANOS, PREMIOS_INDICACAO } from '@/lib/planos'
 import { moeda } from '@/lib/format'
 import { Sheet } from '@/components/ui/Sheet'
+import { FormPerfil } from './FormPerfil'
 import { cn } from '@/lib/cn'
 
 export function Ajustes() {
   const { perfil, empresa, sair, ehAdmin } = useAuth()
   const toast = useToast()
   const [vendoPlanos, setVendoPlanos] = useState(false)
+  const [editandoPerfil, setEditandoPerfil] = useState(false)
 
   if (!perfil || !empresa) return null
 
@@ -44,9 +46,12 @@ export function Ajustes() {
     <>
       <BarraTopo titulo="Ajustes" />
 
-      <main className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
+      <main className="max-w-2xl lg:max-w-3xl mx-auto px-4 pt-4 space-y-4">
         {/* Identidade */}
-        <div className="card p-5">
+        <button
+          onClick={() => setEditandoPerfil(true)}
+          className="w-full card p-5 text-left active:scale-[.99] transition"
+        >
           <div className="flex items-center gap-3.5">
             <div className="shrink-0 w-14 h-14 rounded-2xl bg-brand-soft text-brand-ink grid place-items-center">
               <Building2 size={26} />
@@ -57,12 +62,13 @@ export function Ajustes() {
                 {[empresa.ramo, empresa.cidade].filter(Boolean).join(' · ')}
               </div>
             </div>
+            <ChevronRight size={20} className="shrink-0 text-faint" />
           </div>
           <div className="mt-4 pt-4 border-t border-line text-[13.5px] text-muted">
             Entrou como <span className="font-semibold text-ink">{perfil.nome}</span>
             {perfil.email && <> · {perfil.email}</>}
           </div>
-        </div>
+        </button>
 
         {/* Assinatura — escondida no build Android por política do Google Play */}
         {mostraCobranca && (
@@ -155,6 +161,15 @@ export function Ajustes() {
 
         <EspacoBarra />
       </main>
+
+      {editandoPerfil && (
+        <FormPerfil
+          perfil={perfil}
+          empresa={empresa}
+          ehDono={perfil.papel === 'DONO'}
+          aoFechar={() => setEditandoPerfil(false)}
+        />
+      )}
 
       {vendoPlanos && (
         <Sheet

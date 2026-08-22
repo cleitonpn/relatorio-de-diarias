@@ -34,7 +34,15 @@ interface EstadoAuth {
   entrarComEmail: (email: string, senha: string) => Promise<void>
   criarContaComEmail: (nome: string, email: string, senha: string) => Promise<void>
   entrarComGoogle: () => Promise<void>
-  criarEmpresa: (dados: { nome: string; ramo: string; cidade: string; codigoIndicacao?: string }) => Promise<void>
+  criarEmpresa: (dados: {
+    /** Nome do negócio. */
+    nome: string
+    /** Nome da pessoa — pode ser diferente do que veio da conta Google. */
+    nomePessoa: string
+    ramo: string
+    cidade: string
+    codigoIndicacao?: string
+  }) => Promise<void>
   sair: () => Promise<void>
 }
 
@@ -48,7 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuarioAuth, setUsuarioAuth] = useState<User | null>(null)
   const [perfil, setPerfil] = useState<Usuario | null>(null)
   const [empresa, setEmpresa] = useState<Empresa | null>(null)
-  const [ehAdmin, setEhAdmin] = useState(false)
+  const [ehAdminPorDoc, setEhAdminPorDoc] = useState(false)
+  const [adminVerificado, setAdminVerificado] = useState(false)
 
   // 1) Sessão do Firebase Auth
   useEffect(() => {
@@ -57,7 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user) {
         setPerfil(null)
         setEmpresa(null)
-        setEhAdmin(false)
+        setEhAdminPorDoc(false)
+        setAdminVerificado(false)
         setCarregando(false)
       }
     })
@@ -76,23 +86,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
   }, [usuarioAuth])
 
-  // 3) É admin da plataforma? Uma leitura só, no login.
+  /**
+   * A conta raiz é reconhecida na hora, sem ida ao banco — senão a tela
+   * pisca o cadastro de empreiteiro antes de cair no painel.
+   *
+   * Isto aqui só mostra ou esconde menu. Quem decide de verdade são as regras
+   * do Firestore; repetir a checagem no cliente é conveniência, não segurança.
+   */
+  const ehAdminRaiz = !!usuarioAuth && usuarioAuth.email === ADMIN_RAIZ && usuarioAuth.emailVerified
+
+  // 3) Admins adicionais vivem em /admins/{uid} — esses exigem uma leitura.
   useEffect(() => {
-    if (!usuarioAuth) return
-    // A tela só mostra ou esconde o menu. Quem decide de verdade são as regras
-    // do Firestore — repetir a checagem aqui é conveniência, não segurança.
-    if (usuarioAuth.email === ADMIN_RAIZ && usuarioAuth.emailVerified) {
-      setEhAdmin(true)
+    if (!usuarioAuth || ehAdminRaiz) {
+      setAdminVerificado(!!usuarioAuth)
       return
     }
     let cancelado = false
     getDoc(doc(db, 'admins', usuarioAuth.uid))
-      .then((snap) => !cancelado && setEhAdmin(snap.exists()))
-      .catch(() => !cancelado && setEhAdmin(false))
+      .then((snap) => {
+        if (cancelado) return
+        setEhAdminPorDoc(snap.exists())
+        setAdminVerificado(true)
+      })
+      .catch(() => {
+        if (cancelado) return
+        setEhAdminPorDoc(false)
+        setAdminVerificado(true)
+      })
     return () => {
       cancelado = true
     }
-  }, [usuarioAuth])
+  }, [usuarioAuth, ehAdminRaiz])
 
   // 4) Empresa (tenant) — chega junto com o estado da assinatura
   useEffect(() => {
@@ -160,7 +184,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await setDoc(docUsuario(user.uid), {
         empresaId: empresaRef.id,
-        nome: user.displayName || dados.nome.trim(),
+        // O nome digitado manda: a conta Google pode estar no nome da empresa,
+        // do filho, ou sem nome nenhum.
+        nome: dados.nomePessoa.trim() || user.displayName || 'Sem nome',
         email: user.email,
         telefone: null,
         papel: 'DONO',
@@ -182,15 +208,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       usuarioAuth,
       perfil,
       empresa,
-      precisaOnboarding: !!usuarioAuth && !carregando && !perfil,
-      ehAdmin,
+      // Só decide o destino depois de saber se é admin — evita mandar o
+      // administrador para o cadastro de empreiteiro por meio segundo.
+      precisaOnboarding: !!usuarioAuth && !carregando && !perfil && adminVerificado,
+      ehAdmin: ehAdminRaiz || ehAdminPorDoc,
       entrarComEmail,
       criarContaComEmail,
       entrarComGoogle,
       criarEmpresa,
       sair,
     }),
-    [carregando, usuarioAuth, perfil, empresa, ehAdmin, entrarComEmail, criarContaComEmail, entrarComGoogle, criarEmpresa, sair],
+    [
+      carregando,
+      usuarioAuth,
+      perfil,
+      empresa,
+      ehAdminRaiz,
+      ehAdminPorDoc,
+      adminVerificado,
+      entrarComEmail,
+      criarContaComEmail,
+      entrarComGoogle,
+      criarEmpresa,
+      sair,
+    ],
   )
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>

@@ -55,8 +55,14 @@ export function CartaoResultado({
           <span className="text-[15px]">{texto.emoji}</span>
         </div>
 
-        <div className="mt-1.5 flex items-end gap-2.5">
-          <span className={cn('tnum font-extrabold leading-none', compacto ? 'text-[34px]' : 'text-[42px]')}>
+        <div className="mt-1.5 flex items-end gap-2.5 flex-wrap">
+          {/* Acompanha a largura da tela: valor grande nunca quebra em duas linhas */}
+          <span
+            className={cn(
+              'tnum font-extrabold leading-none whitespace-nowrap',
+              compacto ? 'text-[clamp(24px,7.5vw,34px)]' : 'text-[clamp(28px,9vw,42px)]',
+            )}
+          >
             {moeda(resultado.lucro)}
           </span>
           {resultado.receita > 0 && (
@@ -98,7 +104,7 @@ function Bloco({
   return (
     <div className={alinharDireita ? 'text-right' : undefined}>
       <div className="text-[12px] font-medium text-white/65 uppercase tracking-wide">{rotulo}</div>
-      <div className="tnum text-[18px] font-bold">{valor}</div>
+      <div className="tnum text-[clamp(14px,4.4vw,18px)] font-bold whitespace-nowrap">{valor}</div>
     </div>
   )
 }

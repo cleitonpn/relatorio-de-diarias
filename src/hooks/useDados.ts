@@ -101,3 +101,20 @@ export function usePagamentos() {
   const empresaId = useEmpresaIdOpcional()
   return useColecao<Pagamento>(empresaId ? colPagamentos(empresaId) : null, [], [empresaId])
 }
+
+/* ------------- Leituras amplas, para o consolidado por período ------------- */
+
+export function useTodasDiarias() {
+  const empresaId = useEmpresaIdOpcional()
+  return useColecao<Diaria>(empresaId ? colDiarias(empresaId) : null, [], [empresaId])
+}
+
+export function useTodosCustos() {
+  const empresaId = useEmpresaIdOpcional()
+  return useColecao<Custo>(empresaId ? colCustos(empresaId) : null, [], [empresaId])
+}
+
+export function useTodosStands() {
+  const empresaId = useEmpresaIdOpcional()
+  return useColecao<Stand>(empresaId ? colStands(empresaId) : null, [], [empresaId])
+}

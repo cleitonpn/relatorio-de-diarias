@@ -39,7 +39,7 @@ export function Feiras() {
         }
       />
 
-      <main className="max-w-2xl mx-auto px-4 pt-4">
+      <main className="max-w-2xl lg:max-w-3xl mx-auto px-4 pt-4">
         {carregando ? (
           <CarregandoLista linhas={3} />
         ) : feiras.length === 0 ? (

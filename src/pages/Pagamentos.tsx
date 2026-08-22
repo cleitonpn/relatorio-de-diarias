@@ -37,7 +37,7 @@ export function Pagamentos() {
       <BarraTopo titulo="Pagamentos" subtitulo="Acerte com sua equipe" />
 
       <div className="sticky top-16 z-20 bg-canvas/85 backdrop-blur-xl border-b border-line/70">
-        <div className="max-w-2xl mx-auto px-4 flex gap-1">
+        <div className="max-w-2xl lg:max-w-3xl mx-auto px-4 flex gap-1">
           {ABAS.map((a) => (
             <button
               key={a.id}
@@ -61,7 +61,7 @@ export function Pagamentos() {
         </div>
       </div>
 
-      <main className="max-w-2xl mx-auto px-4 pt-4">
+      <main className="max-w-2xl lg:max-w-3xl mx-auto px-4 pt-4">
         {aba === 'pagar' && <AbaAPagar />}
         {aba === 'vales' && <PainelVales empresaId={perfil.empresaId} />}
         {aba === 'historico' && <AbaHistorico />}

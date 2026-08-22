@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarDays, Check, Sun, Users, Wallet, X } from 'lucide-react'
+import { CalendarDays, Check, Settings, Sun, Users, Wallet, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useColaboradores, useDiariasDoDia, useFeiras } from '@/hooks/useDados'
 import { useIndice } from '@/hooks/useColecao'
@@ -57,18 +57,27 @@ export function Hoje() {
   return (
     <>
       <header className="safe-top">
-        <div className="max-w-2xl mx-auto px-4 pt-6 pb-2">
-          <div className="flex items-center gap-2 text-[13.5px] font-semibold text-muted">
-            <Sun size={16} /> {dataPorExtenso(hoje)}
+        <div className="max-w-2xl lg:max-w-3xl mx-auto px-4 pt-6 pb-2 flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 text-[13.5px] font-semibold text-muted">
+              <Sun size={16} /> {dataPorExtenso(hoje)}
+            </div>
+            <h1 className="text-[27px] font-extrabold leading-tight mt-1">
+              {saudacao()}
+              {primeiroNome && `, ${primeiroNome}`}
+            </h1>
           </div>
-          <h1 className="text-[27px] font-extrabold leading-tight mt-1">
-            {saudacao()}
-            {primeiroNome && `, ${primeiroNome}`}
-          </h1>
+          <Link
+            to="/ajustes"
+            className="shrink-0 w-11 h-11 mt-1 grid place-items-center rounded-full text-muted hover:bg-raised transition"
+            aria-label="Ajustes"
+          >
+            <Settings size={21} />
+          </Link>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 pt-2">
+      <main className="max-w-2xl lg:max-w-3xl mx-auto px-4 pt-2">
         {carregando ? (
           <CarregandoLista linhas={3} />
         ) : diarias.length === 0 ? (
@@ -136,9 +145,14 @@ export function Hoje() {
               )
             })}
 
-            <Link to="/pagamentos" className="btn-ghost w-full">
-              <Wallet size={18} /> Ver o que tenho a pagar
-            </Link>
+            <div className="grid grid-cols-2 gap-2.5">
+              <Link to="/pagamentos" className="btn-ghost">
+                <Wallet size={18} /> A pagar
+              </Link>
+              <Link to="/dinheiro" className="btn-ghost">
+                Meu dinheiro
+              </Link>
+            </div>
 
             {empresa && (
               <p className="text-center text-[12.5px] text-faint">

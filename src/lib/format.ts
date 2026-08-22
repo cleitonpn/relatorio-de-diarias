@@ -2,12 +2,15 @@ import type { Centavos, DataISO } from '@/types'
 
 /** R$ 1.234,56 — dinheiro sempre em centavos, nunca float. */
 export function moeda(centavos: Centavos, opcoes?: { semSimbolo?: boolean }): string {
-  const valor = (centavos ?? 0) / 100
-  const texto = valor.toLocaleString('pt-BR', {
+  const bruto = centavos ?? 0
+  const negativo = bruto < 0
+  const texto = (Math.abs(bruto) / 100).toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
-  return opcoes?.semSimbolo ? texto : `R$ ${texto}`
+  // Em português o sinal vem antes do símbolo: -R$ 750,00, nunca R$ -750,00.
+  if (opcoes?.semSimbolo) return negativo ? `-${texto}` : texto
+  return negativo ? `-R$ ${texto}` : `R$ ${texto}`
 }
 
 /** Versão curta para números grandes em cartões: R$ 3,2 mil / R$ 1,4 mi */

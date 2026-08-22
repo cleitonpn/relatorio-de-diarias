@@ -47,7 +47,7 @@ export function Equipe() {
         }
       />
 
-      <main className="max-w-2xl mx-auto px-4 pt-4">
+      <main className="max-w-2xl lg:max-w-3xl mx-auto px-4 pt-4">
         {colaboradores.length > 4 && (
           <div className="relative mb-4">
             <Search size={19} className="absolute left-4 top-1/2 -translate-y-1/2 text-faint" />

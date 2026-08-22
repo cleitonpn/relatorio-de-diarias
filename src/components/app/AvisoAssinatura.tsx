@@ -63,7 +63,7 @@ function Faixa({
     tom === 'alerta' ? 'bg-alerta-soft text-alerta' : 'bg-custo-soft text-custo'
   return (
     <div className={`${cores} px-4 py-2.5 safe-top`}>
-      <div className="max-w-2xl mx-auto flex items-center gap-2 text-[13.5px] font-semibold leading-snug">
+      <div className="max-w-2xl lg:max-w-3xl mx-auto flex items-center gap-2 text-[13.5px] font-semibold leading-snug">
         <span className="shrink-0">{icone}</span>
         <span>{children}</span>
       </div>

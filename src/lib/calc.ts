@@ -161,3 +161,98 @@ export function montarAcerto(
     a.colaboradorNome.localeCompare(b.colaboradorNome, 'pt-BR'),
   )
 }
+
+/* ------------------------- Consolidado por período ------------------------- */
+
+export interface ResultadoDaFeira {
+  feira: Feira
+  resultado: Resultado
+}
+
+export interface Consolidado extends Resultado {
+  feiras: ResultadoDaFeira[]
+  quantidadeFeiras: number
+  /** Feira que mais rendeu no período. */
+  melhor: ResultadoDaFeira | null
+  /** Feira que menos rendeu (ou deu prejuízo). */
+  pior: ResultadoDaFeira | null
+  /** Quantas pessoas diferentes trabalharam. */
+  pessoasEnvolvidas: number
+  /** Quanto sobra, em média, por dia de trabalho de uma pessoa. */
+  lucroPorDiaria: Centavos
+}
+
+/**
+ * Junta várias feiras num resultado só.
+ *
+ * Regra de atribuição: a feira inteira conta no período em que ela COMEÇOU.
+ * É como o empreiteiro pensa ("a feira de março"), e evita partir o resultado
+ * de uma feira que atravessa a virada do mês.
+ */
+export function consolidar(
+  feiras: Feira[],
+  standsPorFeira: Record<string, Stand[]>,
+  diariasPorFeira: Record<string, Diaria[]>,
+  custosPorFeira: Record<string, Custo[]>,
+): Consolidado {
+  const porFeira: ResultadoDaFeira[] = feiras.map((feira) => {
+    const stands = standsPorFeira[feira.id] ?? []
+    const diarias = diariasPorFeira[feira.id] ?? []
+    const custos = custosPorFeira[feira.id] ?? []
+    return {
+      feira,
+      resultado: calcularResultado(
+        receitaDaFeira(feira, stands),
+        diarias,
+        custos,
+        m2DaFeira(feira, stands),
+      ),
+    }
+  })
+
+  const soma = (pegar: (r: Resultado) => number) =>
+    porFeira.reduce((t, f) => t + pegar(f.resultado), 0)
+
+  const receita = soma((r) => r.receita)
+  const custoTotal = soma((r) => r.custoTotal)
+  const lucro = receita - custoTotal
+  const totalDiarias = soma((r) => r.totalDiarias)
+  const m2 = soma((r) => r.m2)
+
+  const pessoas = new Set<string>()
+  for (const lista of Object.values(diariasPorFeira)) {
+    for (const d of lista) if (diariaContaComoCusto(d)) pessoas.add(d.colaboradorId)
+  }
+
+  const ordenadas = [...porFeira].sort((a, b) => b.resultado.lucro - a.resultado.lucro)
+
+  return {
+    receita,
+    custoDiarias: soma((r) => r.custoDiarias),
+    custoAlmoco: soma((r) => r.custoAlmoco),
+    custoOutros: soma((r) => r.custoOutros),
+    custoTotal,
+    lucro,
+    margem: receita > 0 ? lucro / receita : 0,
+    totalDiarias,
+    m2,
+    receitaPorM2: m2 > 0 ? Math.round(receita / m2) : 0,
+    custoPorM2: m2 > 0 ? Math.round(custoTotal / m2) : 0,
+    lucroPorM2: m2 > 0 ? Math.round(lucro / m2) : 0,
+    feiras: ordenadas,
+    quantidadeFeiras: porFeira.length,
+    melhor: ordenadas[0] ?? null,
+    pior: ordenadas.length > 1 ? ordenadas[ordenadas.length - 1] : null,
+    pessoasEnvolvidas: pessoas.size,
+    lucroPorDiaria: totalDiarias > 0 ? Math.round(lucro / totalDiarias) : 0,
+  }
+}
+
+/** Agrupa uma lista por feira, para alimentar o consolidado. */
+export function agruparPorFeira<T extends { feiraId: string }>(itens: T[]): Record<string, T[]> {
+  const mapa: Record<string, T[]> = {}
+  for (const item of itens) {
+    ;(mapa[item.feiraId] ??= []).push(item)
+  }
+  return mapa
+}
