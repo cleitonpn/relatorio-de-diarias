@@ -29,12 +29,17 @@ interface EstadoAuth {
   empresa: Empresa | null
   /** true quando está logado mas ainda não criou a empresa. */
   precisaOnboarding: boolean
+  /** Administrador da plataforma. Definido só à mão, no Console do Firebase. */
+  ehAdmin: boolean
   entrarComEmail: (email: string, senha: string) => Promise<void>
   criarContaComEmail: (nome: string, email: string, senha: string) => Promise<void>
   entrarComGoogle: () => Promise<void>
   criarEmpresa: (dados: { nome: string; ramo: string; cidade: string; codigoIndicacao?: string }) => Promise<void>
   sair: () => Promise<void>
 }
+
+/** Conta raiz da plataforma — precisa bater com a regra em firestore.rules. */
+const ADMIN_RAIZ = 'cleitonpnascimento@gmail.com'
 
 const Contexto = createContext<EstadoAuth | null>(null)
 
@@ -43,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuarioAuth, setUsuarioAuth] = useState<User | null>(null)
   const [perfil, setPerfil] = useState<Usuario | null>(null)
   const [empresa, setEmpresa] = useState<Empresa | null>(null)
+  const [ehAdmin, setEhAdmin] = useState(false)
 
   // 1) Sessão do Firebase Auth
   useEffect(() => {
@@ -51,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user) {
         setPerfil(null)
         setEmpresa(null)
+        setEhAdmin(false)
         setCarregando(false)
       }
     })
@@ -69,7 +76,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
   }, [usuarioAuth])
 
-  // 3) Empresa (tenant) — chega junto com o estado da assinatura
+  // 3) É admin da plataforma? Uma leitura só, no login.
+  useEffect(() => {
+    if (!usuarioAuth) return
+    // A tela só mostra ou esconde o menu. Quem decide de verdade são as regras
+    // do Firestore — repetir a checagem aqui é conveniência, não segurança.
+    if (usuarioAuth.email === ADMIN_RAIZ && usuarioAuth.emailVerified) {
+      setEhAdmin(true)
+      return
+    }
+    let cancelado = false
+    getDoc(doc(db, 'admins', usuarioAuth.uid))
+      .then((snap) => !cancelado && setEhAdmin(snap.exists()))
+      .catch(() => !cancelado && setEhAdmin(false))
+    return () => {
+      cancelado = true
+    }
+  }, [usuarioAuth])
+
+  // 4) Empresa (tenant) — chega junto com o estado da assinatura
   useEffect(() => {
     if (!perfil?.empresaId) {
       setEmpresa(null)
@@ -158,13 +183,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       perfil,
       empresa,
       precisaOnboarding: !!usuarioAuth && !carregando && !perfil,
+      ehAdmin,
       entrarComEmail,
       criarContaComEmail,
       entrarComGoogle,
       criarEmpresa,
       sair,
     }),
-    [carregando, usuarioAuth, perfil, empresa, entrarComEmail, criarContaComEmail, entrarComGoogle, criarEmpresa, sair],
+    [carregando, usuarioAuth, perfil, empresa, ehAdmin, entrarComEmail, criarContaComEmail, entrarComGoogle, criarEmpresa, sair],
   )
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>
@@ -188,9 +214,4 @@ export function usePodeEditar(): boolean {
   const { empresa } = useAuth()
   const status = empresa?.assinatura.status
   return status === 'TESTE' || status === 'ATIVA' || status === 'PENDENTE'
-}
-
-export async function buscarEmpresaPorCodigo(codigo: string): Promise<boolean> {
-  const snap = await getDoc(doc(db, 'empresas', codigo))
-  return snap.exists()
 }

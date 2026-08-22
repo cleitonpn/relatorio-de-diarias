@@ -7,7 +7,9 @@ import {
   LogOut,
   ShieldCheck,
   Sparkles,
+  Wrench,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { BarraTopo, EspacoBarra } from '@/components/app/Navegacao'
 import { useToast } from '@/components/app/Toast'
@@ -18,7 +20,7 @@ import { Sheet } from '@/components/ui/Sheet'
 import { cn } from '@/lib/cn'
 
 export function Ajustes() {
-  const { perfil, empresa, sair } = useAuth()
+  const { perfil, empresa, sair, ehAdmin } = useAuth()
   const toast = useToast()
   const [vendoPlanos, setVendoPlanos] = useState(false)
 
@@ -117,6 +119,22 @@ export function Ajustes() {
             ))}
           </div>
         </div>
+
+        {/* Painel da plataforma — só aparece para a administração */}
+        {ehAdmin && (
+          <Link to="/admin" className="block card p-5 active:scale-[.99] transition">
+            <div className="flex items-center gap-3">
+              <div className="shrink-0 w-11 h-11 rounded-2xl bg-ink text-canvas grid place-items-center">
+                <Wrench size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-[16px]">Administração</div>
+                <div className="text-[13.5px] text-muted">Contas, planos e modo demonstração</div>
+              </div>
+              <ChevronRight size={20} className="shrink-0 text-faint" />
+            </div>
+          </Link>
+        )}
 
         {/* Privacidade */}
         <div className="card p-5">

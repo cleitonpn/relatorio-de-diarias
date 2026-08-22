@@ -26,6 +26,8 @@ e quanto sobra pra ele** — e pagar a equipe pelo PIX sem errar valor.
 | Acerto por pessoa + **PIX copia e cola** + QR + envio no WhatsApp | ✅ |
 | Funciona offline (pavilhão sem sinal) | ✅ |
 | Instalável como app (PWA) | ✅ |
+| **Painel admin**: contas, planos, descontos, exclusão, indicações | ✅ |
+| **Modo demonstração**: enche sua conta para testar todas as telas | ✅ |
 | Tela do funcionário (link + PIN) | ⏳ próxima etapa |
 | Perfil de encarregado | ⏳ próxima etapa |
 | Cobrança pelo Mercado Pago | ⏳ próxima etapa |
@@ -53,7 +55,15 @@ Depois disso, tudo que for enviado para o repositório vai sozinho para o ar.
 ### 2. Publicar as regras de segurança
 
 As regras (`firestore.rules` e `storage.rules`) definem que um empreiteiro nunca
-enxerga os dados de outro. Elas sobem junto com o deploy do passo 1.
+enxerga os dados de outro. **Sem elas publicadas, o Firestore nega tudo** — é o
+erro `Missing or insufficient permissions` na tela de cadastro.
+
+O workflow do passo 1 publica as regras e os índices automaticamente a cada envio.
+
+**Para publicar agora, sem esperar o workflow:** Console do Firebase →
+**Firestore Database** → aba **Regras** → apagar o conteúdo → colar o
+`firestore.rules` deste repositório → **Publicar**. Repetir em **Storage** →
+**Regras** com o `storage.rules`.
 
 ### 3. Autorizar o domínio para o login do Google
 
@@ -62,6 +72,37 @@ adicionar o domínio do Hosting (`diarias-app-cd76f.web.app`) e, depois, o domí
 próprio, se você usar um.
 
 ---
+
+## Painel de administração
+
+Aparece em **Ajustes → Administração**, só para a conta de administração.
+
+- **Contas** — todas as empresas, com situação da assinatura, dias de teste
+  restantes, desconto ativo e quanto cada uma paga. Ao abrir uma conta:
+  trocar de plano, mudar a situação, aplicar desconto (temporário ou vitalício),
+  estender o teste em 15 ou 30 dias, aplicar a **cortesia vitalícia de beta
+  tester** num toque, e **excluir a conta** (exige digitar o nome da empresa).
+- **Indicações** — quem indicou quem, se o indicado já virou pagante, e o botão
+  de liberar o prêmio. O botão só existe depois que o indicado paga: é isso que
+  impede alguém abrir contas falsas para ganhar meses grátis.
+- **Ferramentas** — o modo demonstração.
+
+### Quem é admin
+
+A conta raiz está fixada em `firestore.rules` e em `src/contexts/AuthContext.tsx`
+(procure por `ADMIN_RAIZ`). Para trocar ou adicionar, mude nos dois lugares, ou
+crie um documento em `/admins/{uid}` pelo Console do Firebase — essa coleção
+**não pode ser escrita pelo app**, de propósito: não existe caminho de código
+que promova alguém a administrador.
+
+### Modo demonstração
+
+Enche a **sua própria conta** com uma feira acontecendo agora (6 pessoas, 3 stands,
+presença marcada, gastos, vales) e uma feira antiga de pacote fechado no histórico.
+Serve para conferir todas as telas cheias e para demonstrar o app a um empreiteiro.
+
+Todo registro criado tem id começando com `demo_`, e o botão **Limpar** apaga
+exatamente esses — nunca encosta em dado real.
 
 ## Como o dinheiro é tratado
 

@@ -11,3 +11,5 @@ ios/
 *.log
 .vscode/*
 !.vscode/extensions.json
+tsconfig.tsbuildinfo
+*.tsbuildinfo

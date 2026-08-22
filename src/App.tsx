@@ -11,6 +11,7 @@ import { FeiraDetalhe } from '@/pages/FeiraDetalhe'
 import { Equipe } from '@/pages/Equipe'
 import { Pagamentos } from '@/pages/Pagamentos'
 import { Ajustes } from '@/pages/Ajustes'
+import { Admin } from '@/pages/Admin'
 import { useVales } from '@/hooks/useDados'
 
 export function App() {
@@ -37,6 +38,7 @@ function AreaLogada() {
         <Route path="/equipe" element={<Equipe />} />
         <Route path="/pagamentos" element={<Pagamentos />} />
         <Route path="/ajustes" element={<Ajustes />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <BarraInferior aviso={valesPendentes.length} />

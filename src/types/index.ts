@@ -63,8 +63,13 @@ export interface Empresa {
   donoUid: string
   /** Código que ele passa para indicar outros empreiteiros. */
   codigoIndicacao: string
-  /** Quem indicou esta empresa. */
+  /** Código de quem indicou esta empresa. */
   indicadaPor: string | null
+  /**
+   * Se o prêmio desta indicação já foi creditado a quem indicou.
+   * Existe para o crédito nunca sair duas vezes pela mesma conta.
+   */
+  premioIndicacaoLiberado?: boolean | null
   assinatura: Assinatura
   /** Valor padrão de almoço por pessoa/dia, para pré-preencher lançamentos. */
   almocoPadrao: Centavos

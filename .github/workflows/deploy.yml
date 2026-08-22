@@ -1,4 +1,4 @@
-name: Publicar no Firebase Hosting
+name: Publicar
 
 on:
   push:
@@ -25,7 +25,22 @@ jobs:
       - name: Gerar o site
         run: npm run build
 
-      - name: Publicar site, regras e índices
+      # A action de Hosting publica SÓ o site. As regras de segurança e os
+      # índices precisam de um deploy próprio — sem isso o app sobe no ar
+      # mas o banco continua negando tudo.
+      - name: Publicar regras e índices
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/chave.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/chave.json"
+          npx --yes firebase-tools@latest deploy \
+            --only firestore:rules,firestore:indexes,storage \
+            --project diarias-app-cd76f \
+            --non-interactive
+          rm -f "$RUNNER_TEMP/chave.json"
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Publicar o site
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

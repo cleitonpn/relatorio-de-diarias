@@ -34,6 +34,25 @@ service cloud.firestore {
     }
 
     /**
+     * Administrador da plataforma (você).
+     *
+     * A lista de admins NÃO é escrita por ninguém pelo app — só à mão, pelo
+     * Console do Firebase. Assim não existe caminho de código que promova
+     * alguém a admin, nem por bug nem por invasão de conta.
+     */
+    function ehAdmin() {
+      return autenticado() && (
+        // Conta raiz da plataforma. O e-mail vem verificado pelo provedor
+        // (Google), e o Firebase não deixa dois usuários com o mesmo e-mail —
+        // então ninguém consegue se passar por ela.
+        (request.auth.token.email == 'cleitonpnascimento@gmail.com'
+          && request.auth.token.email_verified == true)
+        // Admins adicionais, criados à mão no Console do Firebase.
+        || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    /**
      * Assinatura vencida NUNCA apaga nem esconde dado: o empreiteiro continua
      * enxergando tudo. O que ela bloqueia é lançar coisa nova.
      */
@@ -42,13 +61,21 @@ service cloud.firestore {
         && empresa(empresaId).assinatura.status in ['TESTE', 'ATIVA', 'PENDENTE'];
     }
 
+    /* --------------------------- Admin da plataforma --------------------------- */
+
+    match /admins/{uid} {
+      // A pessoa consegue descobrir que ela mesma é admin; ninguém escreve daqui.
+      allow read: if autenticado() && uid == request.auth.uid;
+      allow write: if false;
+    }
+
     /* ------------------------------ Usuários ------------------------------ */
 
     match /usuarios/{uid} {
-      allow read: if autenticado() && (
+      allow read: if ehAdmin() || (autenticado() && (
         uid == request.auth.uid ||
         (existePerfil() && perfil().empresaId == resource.data.empresaId)
-      );
+      ));
 
       // Cadastro inicial: a pessoa só cria o próprio perfil, e só como DONO.
       allow create: if autenticado()
@@ -57,74 +84,75 @@ service cloud.firestore {
         && request.resource.data.ativo == true;
 
       // O dono administra os encarregados da própria empresa.
-      allow update: if autenticado() && (
+      allow update: if ehAdmin() || (autenticado() && (
         ehDono(resource.data.empresaId) ||
         (uid == request.auth.uid
           && request.resource.data.papel == resource.data.papel
           && request.resource.data.empresaId == resource.data.empresaId
           && request.resource.data.vePainelFinanceiro == resource.data.vePainelFinanceiro)
-      );
+      ));
 
-      allow delete: if false;
+      allow delete: if ehAdmin();
     }
 
     /* ------------------------------ Empresas ------------------------------ */
 
     match /empresas/{empresaId} {
-      allow read: if pertenceA(empresaId);
+      allow read: if ehAdmin() || pertenceA(empresaId);
 
       allow create: if autenticado()
         && request.resource.data.donoUid == request.auth.uid
         // Ninguém abre conta já assinante: todo mundo começa no teste grátis.
         && request.resource.data.assinatura.status == 'TESTE';
 
-      // A assinatura só muda pelo servidor (webhook do Mercado Pago).
-      allow update: if ehDono(empresaId)
+      // O dono nunca mexe na própria assinatura — só o admin (e, no futuro,
+      // o webhook do Mercado Pago).
+      allow update: if ehAdmin() || (ehDono(empresaId)
         && request.resource.data.assinatura == resource.data.assinatura
-        && request.resource.data.donoUid == resource.data.donoUid;
+        && request.resource.data.donoUid == resource.data.donoUid);
 
-      allow delete: if false;
+      allow delete: if ehAdmin();
 
       /* --------------------- Dados operacionais do tenant --------------------- */
 
       match /colaboradores/{id} {
-        allow read: if pertenceA(empresaId);
-        allow write: if podeEscrever(empresaId);
+        allow read: if ehAdmin() || pertenceA(empresaId);
+        allow write: if ehAdmin() || podeEscrever(empresaId);
       }
 
       match /contratantes/{id} {
-        allow read: if pertenceA(empresaId);
-        allow write: if podeEscrever(empresaId);
+        allow read: if ehAdmin() || pertenceA(empresaId);
+        allow write: if ehAdmin() || podeEscrever(empresaId);
       }
 
       match /feiras/{id} {
-        allow read: if pertenceA(empresaId);
-        allow write: if podeEscrever(empresaId);
+        allow read: if ehAdmin() || pertenceA(empresaId);
+        allow write: if ehAdmin() || podeEscrever(empresaId);
       }
 
       match /stands/{id} {
-        allow read: if pertenceA(empresaId);
-        allow write: if podeEscrever(empresaId);
+        allow read: if ehAdmin() || pertenceA(empresaId);
+        allow write: if ehAdmin() || podeEscrever(empresaId);
       }
 
       match /diarias/{id} {
-        allow read: if pertenceA(empresaId);
-        allow write: if podeEscrever(empresaId);
+        allow read: if ehAdmin() || pertenceA(empresaId);
+        allow write: if ehAdmin() || podeEscrever(empresaId);
       }
 
       match /custos/{id} {
-        allow read: if pertenceA(empresaId);
-        allow write: if podeEscrever(empresaId);
+        allow read: if ehAdmin() || pertenceA(empresaId);
+        allow write: if ehAdmin() || podeEscrever(empresaId);
       }
 
       match /vales/{id} {
-        allow read: if pertenceA(empresaId);
-        allow write: if podeEscrever(empresaId);
+        allow read: if ehAdmin() || pertenceA(empresaId);
+        allow write: if ehAdmin() || podeEscrever(empresaId);
       }
 
       match /pagamentos/{id} {
-        allow read: if pertenceA(empresaId);
-        allow write: if podeEscrever(empresaId);
+        allow read: if ehAdmin() || pertenceA(empresaId);
+        allow write: if ehAdmin() || podeEscrever(empresaId);
       }
     }
 
