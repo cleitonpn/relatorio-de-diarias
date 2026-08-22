@@ -33,8 +33,13 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
       # As regras do Firestore são o que impede um empreiteiro de ver os dados
-      # de outro. Se este passo falhar, o deploy TEM que falhar junto.
+      # de outro — falhar aqui é grave e o job termina em vermelho no fim.
+      # Mas não adianta travar a publicação do site por causa disso: o site
+      # sem regras novas é inofensivo, e quem precisa das regras publica pelo
+      # Console enquanto a permissão não estiver ajustada.
       - name: Publicar regras e índices do Firestore
+        id: regras
+        continue-on-error: true
         run: |
           npx --yes firebase-tools@latest deploy \
             --only firestore:rules,firestore:indexes \
@@ -64,3 +69,21 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
           projectId: diarias-app-cd76f
+
+      # O site sobe, mas o run fica vermelho para as regras não passarem batido.
+      - name: Cobrar as regras que não subiram
+        if: steps.regras.outcome == 'failure'
+        run: |
+          echo "::error::As regras do Firestore NAO foram publicadas (403 na API firebaserules)."
+          echo ""
+          echo "O site foi publicado, mas o banco continua com as regras antigas."
+          echo ""
+          echo "Para resolver de vez, no Google Cloud Console:"
+          echo "  IAM e administrador -> IAM -> localizar a conta de servico"
+          echo "  firebase-adminsdk-...@diarias-app-cd76f.iam.gserviceaccount.com"
+          echo "  -> Editar -> Adicionar outra funcao -> 'Firebase Rules Admin'"
+          echo "  (e 'Cloud Datastore Index Admin' para os indices)."
+          echo ""
+          echo "Enquanto isso, publique a mao: Console do Firebase -> Firestore"
+          echo "Database -> aba Regras -> colar firestore.rules -> Publicar."
+          exit 1
