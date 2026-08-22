@@ -1,0 +1,136 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* ------------------------------------------------------------------ *
+     *  O isolamento entre empreiteiros é garantido AQUI, no servidor.
+     *  A tela nunca é a fonte de verdade de permissão.
+     * ------------------------------------------------------------------ */
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function perfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function existePerfil() {
+      return autenticado()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+
+    function pertenceA(empresaId) {
+      return existePerfil() && perfil().empresaId == empresaId && perfil().ativo == true;
+    }
+
+    function ehDono(empresaId) {
+      return pertenceA(empresaId) && perfil().papel == 'DONO';
+    }
+
+    function empresa(empresaId) {
+      return get(/databases/$(database)/documents/empresas/$(empresaId)).data;
+    }
+
+    /**
+     * Assinatura vencida NUNCA apaga nem esconde dado: o empreiteiro continua
+     * enxergando tudo. O que ela bloqueia é lançar coisa nova.
+     */
+    function podeEscrever(empresaId) {
+      return pertenceA(empresaId)
+        && empresa(empresaId).assinatura.status in ['TESTE', 'ATIVA', 'PENDENTE'];
+    }
+
+    /* ------------------------------ Usuários ------------------------------ */
+
+    match /usuarios/{uid} {
+      allow read: if autenticado() && (
+        uid == request.auth.uid ||
+        (existePerfil() && perfil().empresaId == resource.data.empresaId)
+      );
+
+      // Cadastro inicial: a pessoa só cria o próprio perfil, e só como DONO.
+      allow create: if autenticado()
+        && uid == request.auth.uid
+        && request.resource.data.papel == 'DONO'
+        && request.resource.data.ativo == true;
+
+      // O dono administra os encarregados da própria empresa.
+      allow update: if autenticado() && (
+        ehDono(resource.data.empresaId) ||
+        (uid == request.auth.uid
+          && request.resource.data.papel == resource.data.papel
+          && request.resource.data.empresaId == resource.data.empresaId
+          && request.resource.data.vePainelFinanceiro == resource.data.vePainelFinanceiro)
+      );
+
+      allow delete: if false;
+    }
+
+    /* ------------------------------ Empresas ------------------------------ */
+
+    match /empresas/{empresaId} {
+      allow read: if pertenceA(empresaId);
+
+      allow create: if autenticado()
+        && request.resource.data.donoUid == request.auth.uid
+        // Ninguém abre conta já assinante: todo mundo começa no teste grátis.
+        && request.resource.data.assinatura.status == 'TESTE';
+
+      // A assinatura só muda pelo servidor (webhook do Mercado Pago).
+      allow update: if ehDono(empresaId)
+        && request.resource.data.assinatura == resource.data.assinatura
+        && request.resource.data.donoUid == resource.data.donoUid;
+
+      allow delete: if false;
+
+      /* --------------------- Dados operacionais do tenant --------------------- */
+
+      match /colaboradores/{id} {
+        allow read: if pertenceA(empresaId);
+        allow write: if podeEscrever(empresaId);
+      }
+
+      match /contratantes/{id} {
+        allow read: if pertenceA(empresaId);
+        allow write: if podeEscrever(empresaId);
+      }
+
+      match /feiras/{id} {
+        allow read: if pertenceA(empresaId);
+        allow write: if podeEscrever(empresaId);
+      }
+
+      match /stands/{id} {
+        allow read: if pertenceA(empresaId);
+        allow write: if podeEscrever(empresaId);
+      }
+
+      match /diarias/{id} {
+        allow read: if pertenceA(empresaId);
+        allow write: if podeEscrever(empresaId);
+      }
+
+      match /custos/{id} {
+        allow read: if pertenceA(empresaId);
+        allow write: if podeEscrever(empresaId);
+      }
+
+      match /vales/{id} {
+        allow read: if pertenceA(empresaId);
+        allow write: if podeEscrever(empresaId);
+      }
+
+      match /pagamentos/{id} {
+        allow read: if pertenceA(empresaId);
+        allow write: if podeEscrever(empresaId);
+      }
+    }
+
+    // Nada fora do que está declarado acima.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

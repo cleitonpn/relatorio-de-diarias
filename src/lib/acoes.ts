@@ -1,0 +1,257 @@
+import {
+  addDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  updateDoc,
+  writeBatch,
+} from 'firebase/firestore'
+import { db } from './firebase'
+import {
+  colColaboradores,
+  colContratantes,
+  colCustos,
+  colDiarias,
+  colFeiras,
+  colPagamentos,
+  colStands,
+  colVales,
+} from './db'
+import type { Colaborador, Custo, Diaria, Feira, Pagamento, Stand, Vale } from '@/types'
+
+type SemMeta<T> = Omit<T, 'id' | 'empresaId' | 'criadoEm' | 'criadaEm'>
+
+const agora = () => serverTimestamp()
+
+/* ------------------------------ Colaboradores ------------------------------ */
+
+export async function salvarColaborador(
+  empresaId: string,
+  dados: SemMeta<Colaborador>,
+  id?: string,
+) {
+  if (id) {
+    await updateDoc(doc(colColaboradores(empresaId), id), dados as never)
+    return id
+  }
+  const ref = await addDoc(colColaboradores(empresaId), {
+    ...dados,
+    empresaId,
+    criadoEm: agora(),
+  } as never)
+  return ref.id
+}
+
+/** Nunca apagamos gente: desativar preserva o histórico de diárias já pagas. */
+export async function desativarColaborador(empresaId: string, id: string) {
+  await updateDoc(doc(colColaboradores(empresaId), id), { ativo: false })
+}
+
+export async function reativarColaborador(empresaId: string, id: string) {
+  await updateDoc(doc(colColaboradores(empresaId), id), { ativo: true })
+}
+
+/* ------------------------------- Contratantes ------------------------------ */
+
+export async function criarContratante(empresaId: string, nome: string, cnpj?: string | null) {
+  const ref = await addDoc(colContratantes(empresaId), {
+    nome: nome.trim(),
+    cnpj: cnpj?.replace(/\D/g, '') || null,
+    contato: null,
+    empresaId,
+    criadoEm: agora(),
+  } as never)
+  return ref.id
+}
+
+/* ---------------------------------- Feiras --------------------------------- */
+
+export async function salvarFeira(empresaId: string, dados: SemMeta<Feira>, id?: string) {
+  if (id) {
+    await updateDoc(doc(colFeiras(empresaId), id), dados as never)
+    return id
+  }
+  const ref = await addDoc(colFeiras(empresaId), {
+    ...dados,
+    empresaId,
+    criadaEm: agora(),
+  } as never)
+  return ref.id
+}
+
+export async function encerrarFeira(empresaId: string, id: string, encerrada = true) {
+  await updateDoc(doc(colFeiras(empresaId), id), { encerrada })
+}
+
+/* ---------------------------------- Stands --------------------------------- */
+
+export async function salvarStand(empresaId: string, dados: SemMeta<Stand>, id?: string) {
+  if (id) {
+    await updateDoc(doc(colStands(empresaId), id), dados as never)
+    return id
+  }
+  const ref = await addDoc(colStands(empresaId), {
+    ...dados,
+    empresaId,
+    criadoEm: agora(),
+  } as never)
+  return ref.id
+}
+
+export async function apagarStand(empresaId: string, id: string) {
+  await deleteDoc(doc(colStands(empresaId), id))
+}
+
+/* --------------------------------- Diárias --------------------------------- */
+
+/**
+ * Lança (ou atualiza) a diária de uma pessoa num dia.
+ *
+ * O valor da diária e o do almoço são CONGELADOS aqui: se amanhã ele aumentar
+ * a diária do Zé, o mês passado não pode mudar de valor.
+ */
+export async function salvarDiaria(empresaId: string, dados: SemMeta<Diaria>, id?: string) {
+  if (id) {
+    await updateDoc(doc(colDiarias(empresaId), id), dados as never)
+    return id
+  }
+  const ref = await addDoc(colDiarias(empresaId), {
+    ...dados,
+    empresaId,
+    criadaEm: agora(),
+  } as never)
+  return ref.id
+}
+
+export async function marcarPresenca(
+  empresaId: string,
+  diariaId: string,
+  presenca: Diaria['presenca'],
+) {
+  await updateDoc(doc(colDiarias(empresaId), diariaId), { presenca })
+}
+
+export async function definirMultiplicador(
+  empresaId: string,
+  diariaId: string,
+  multiplicador: Diaria['multiplicador'],
+) {
+  await updateDoc(doc(colDiarias(empresaId), diariaId), { multiplicador })
+}
+
+export async function apagarDiaria(empresaId: string, id: string) {
+  await deleteDoc(doc(colDiarias(empresaId), id))
+}
+
+/** Escala várias pessoas em vários dias de uma vez (o "empenho"). */
+export async function escalarEmLote(
+  empresaId: string,
+  lote: SemMeta<Diaria>[],
+): Promise<number> {
+  let gravadas = 0
+  // O Firestore aceita no máximo 500 operações por lote.
+  for (let i = 0; i < lote.length; i += 450) {
+    const fatia = lote.slice(i, i + 450)
+    const batch = writeBatch(db)
+    for (const item of fatia) {
+      batch.set(doc(colDiarias(empresaId)), { ...item, empresaId, criadaEm: agora() } as never)
+    }
+    await batch.commit()
+    gravadas += fatia.length
+  }
+  return gravadas
+}
+
+/* ---------------------------------- Custos --------------------------------- */
+
+export async function salvarCusto(empresaId: string, dados: SemMeta<Custo>, id?: string) {
+  if (id) {
+    await updateDoc(doc(colCustos(empresaId), id), dados as never)
+    return id
+  }
+  const ref = await addDoc(colCustos(empresaId), {
+    ...dados,
+    empresaId,
+    criadoEm: agora(),
+  } as never)
+  return ref.id
+}
+
+export async function apagarCusto(empresaId: string, id: string) {
+  await deleteDoc(doc(colCustos(empresaId), id))
+}
+
+/* ----------------------------------- Vales --------------------------------- */
+
+export async function criarVale(empresaId: string, dados: SemMeta<Vale>) {
+  const ref = await addDoc(colVales(empresaId), {
+    ...dados,
+    empresaId,
+    criadoEm: agora(),
+  } as never)
+  return ref.id
+}
+
+export async function responderVale(
+  empresaId: string,
+  id: string,
+  status: Extract<Vale['status'], 'APROVADO' | 'NEGADO'>,
+) {
+  await updateDoc(doc(colVales(empresaId), id), { status })
+}
+
+export async function apagarVale(empresaId: string, id: string) {
+  await deleteDoc(doc(colVales(empresaId), id))
+}
+
+/* -------------------------------- Pagamentos -------------------------------- */
+
+/**
+ * Fecha o acerto de uma pessoa.
+ *
+ * Grava o pagamento e carimba `pagamentoId` em cada diária e vale incluídos —
+ * é essa marca que impede pagar a mesma diária duas vezes. Tudo num lote só:
+ * ou entra inteiro, ou não entra nada.
+ */
+export async function fecharPagamento(
+  empresaId: string,
+  dados: Omit<Pagamento, 'id' | 'empresaId' | 'criadoEm'>,
+): Promise<string> {
+  const batch = writeBatch(db)
+  const pagamentoRef = doc(colPagamentos(empresaId))
+
+  batch.set(pagamentoRef, { ...dados, empresaId, criadoEm: agora() } as never)
+
+  for (const diariaId of dados.diariaIds) {
+    batch.update(doc(colDiarias(empresaId), diariaId), { pagamentoId: pagamentoRef.id })
+  }
+  for (const valeId of dados.valeIds) {
+    batch.update(doc(colVales(empresaId), valeId), {
+      status: 'DESCONTADO',
+      pagamentoId: pagamentoRef.id,
+    })
+  }
+
+  await batch.commit()
+  return pagamentoRef.id
+}
+
+export async function confirmarPagamento(empresaId: string, id: string, data: string) {
+  await updateDoc(doc(colPagamentos(empresaId), id), {
+    status: 'PAGO',
+    dataPagamento: data,
+  })
+}
+
+/** Desfaz um acerto: solta as diárias e os vales para entrarem no próximo. */
+export async function desfazerPagamento(empresaId: string, pagamento: Pagamento) {
+  const batch = writeBatch(db)
+  for (const diariaId of pagamento.diariaIds) {
+    batch.update(doc(colDiarias(empresaId), diariaId), { pagamentoId: null })
+  }
+  for (const valeId of pagamento.valeIds) {
+    batch.update(doc(colVales(empresaId), valeId), { status: 'APROVADO', pagamentoId: null })
+  }
+  batch.delete(doc(colPagamentos(empresaId), pagamento.id))
+  await batch.commit()
+}
