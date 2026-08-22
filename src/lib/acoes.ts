@@ -255,3 +255,22 @@ export async function desfazerPagamento(empresaId: string, pagamento: Pagamento)
   batch.delete(doc(colPagamentos(empresaId), pagamento.id))
   await batch.commit()
 }
+
+/**
+ * Tira as diárias antigas para a pessoa ser escalada em outra feira no
+ * mesmo dia. Diária já paga nunca é removida — o histórico do pagamento
+ * tem que continuar batendo.
+ */
+export async function liberarDiariasParaTransferencia(
+  empresaId: string,
+  diarias: Diaria[],
+): Promise<number> {
+  const transferiveis = diarias.filter((d) => !d.pagamentoId)
+  for (let i = 0; i < transferiveis.length; i += 450) {
+    const fatia = transferiveis.slice(i, i + 450)
+    const batch = writeBatch(db)
+    for (const d of fatia) batch.delete(doc(colDiarias(empresaId), d.id))
+    await batch.commit()
+  }
+  return transferiveis.length
+}

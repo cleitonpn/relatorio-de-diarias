@@ -135,6 +135,9 @@ export function Selecao<T extends string | number>({
   colunas = 2,
 }: SelecaoProps<T>) {
   const grid = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' }[colunas]
+  // Com 3+ colunas não há largura para emoji e rótulo lado a lado: empilhar
+  // evita que palavras longas ("Desmontagem") quebrem no meio.
+  const empilhado = colunas >= 3
   return (
     <div>
       {rotulo && <span className="label">{rotulo}</span>}
@@ -147,18 +150,41 @@ export function Selecao<T extends string | number>({
               type="button"
               onClick={() => onChange(o.valor)}
               className={cn(
-                'min-h-14 px-3 py-3 rounded-2xl border-2 text-left transition active:scale-[.98]',
+                'min-h-14 min-w-0 rounded-2xl border-2 transition active:scale-[.98]',
+                empilhado ? 'px-1.5 py-2.5 text-center' : 'px-3 py-3 text-left',
                 ativo
                   ? 'border-brand bg-brand-soft text-brand-ink'
                   : 'border-line bg-raised text-ink hover:border-brand/40',
               )}
             >
-              <span className="flex items-center gap-2">
-                {o.emoji && <span className="text-[18px]">{o.emoji}</span>}
-                <span className="font-semibold text-[15px] leading-tight">{o.rotulo}</span>
+              <span
+                className={cn(
+                  'flex min-w-0',
+                  empilhado ? 'flex-col items-center gap-0.5' : 'items-center gap-2',
+                )}
+              >
+                {o.emoji && (
+                  <span className={cn('shrink-0', empilhado ? 'text-[19px]' : 'text-[18px]')}>
+                    {o.emoji}
+                  </span>
+                )}
+                <span
+                  className={cn(
+                    'font-semibold leading-tight min-w-0',
+                    empilhado ? 'text-[12px]' : 'text-[15px]',
+                  )}
+                >
+                  {o.rotulo}
+                </span>
               </span>
               {o.descricao && (
-                <span className={cn('block text-[12px] mt-0.5', ativo ? 'text-brand-ink/70' : 'text-faint')}>
+                <span
+                  className={cn(
+                    'block mt-0.5',
+                    empilhado ? 'text-[11px]' : 'text-[12px]',
+                    ativo ? 'text-brand-ink/70' : 'text-faint',
+                  )}
+                >
                   {o.descricao}
                 </span>
               )}

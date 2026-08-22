@@ -118,3 +118,19 @@ export function useTodosStands() {
   const empresaId = useEmpresaIdOpcional()
   return useColecao<Stand>(empresaId ? colStands(empresaId) : null, [], [empresaId])
 }
+
+/**
+ * Diárias de TODAS as feiras dentro de um intervalo de datas.
+ *
+ * Usado para detectar conflito: a mesma pessoa escalada no mesmo dia em duas
+ * feiras diferentes. Sem isso, um toque errado duplica alguém e a conta do
+ * pagamento sai errada nas duas pontas.
+ */
+export function useDiariasNoPeriodo(de: string, ate: string) {
+  const empresaId = useEmpresaIdOpcional()
+  return useColecao<Diaria>(
+    empresaId ? colDiarias(empresaId) : null,
+    [where('data', '>=', de), where('data', '<=', ate)],
+    [empresaId, de, ate],
+  )
+}
