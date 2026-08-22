@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { CalendarDays, ChevronRight, MapPin, Plus, Package } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useFeiras } from '@/hooks/useDados'
@@ -10,6 +10,7 @@ import { FormFeira } from './FormFeira'
 import type { Feira } from '@/types'
 
 export function Feiras() {
+  const navigate = useNavigate()
   const { perfil } = useAuth()
   const { dados: feiras, carregando } = useFeiras()
   const [criando, setCriando] = useState(false)
@@ -65,7 +66,14 @@ export function Feiras() {
       </main>
 
       {criando && perfil && (
-        <FormFeira empresaId={perfil.empresaId} feira={null} aoFechar={() => setCriando(false)} />
+        <FormFeira
+          empresaId={perfil.empresaId}
+          feira={null}
+          aoFechar={() => setCriando(false)}
+          aoCriar={(feiraId, modo) =>
+            navigate(`/feiras/${feiraId}?comecar=${modo === 'PACOTE' ? 'equipe' : 'stands'}`)
+          }
+        />
       )}
     </>
   )

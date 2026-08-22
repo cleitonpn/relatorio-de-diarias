@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Loader2, Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Sheet } from '@/components/ui/Sheet'
 import { Selecao } from '@/components/ui/Campo'
 import { Avatar } from '@/components/ui/Avatar'
@@ -204,9 +205,14 @@ export function FormEscala({ empresaId, feira, jaEscaladas, standId, aoFechar }:
           </div>
 
           {equipe.length === 0 ? (
-            <p className="py-8 text-center text-[15px] text-muted">
-              Cadastre sua equipe primeiro, na aba Equipe.
-            </p>
+            <div className="py-8 text-center">
+              <p className="text-[15px] text-muted leading-relaxed px-4">
+                Você ainda não cadastrou ninguém. Cadastre sua equipe para poder escalar.
+              </p>
+              <Link to="/equipe" onClick={aoFechar} className="btn-primary w-full mt-4">
+                <Users size={18} /> Cadastrar equipe
+              </Link>
+            </div>
           ) : (
             <div className="space-y-2">
               {equipe.map((p) => {

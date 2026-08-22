@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Loader2, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { Sheet } from '@/components/ui/Sheet'
 import { Campo, CampoDinheiro, Selecao } from '@/components/ui/Campo'
 import { useToast } from '@/components/app/Toast'
@@ -44,7 +44,15 @@ export function FormStand({ empresaId, feiraId, stand, aoFechar }: Props) {
     return Object.keys(e).length === 0
   }
 
-  async function salvar() {
+  function limpar() {
+    setNome('')
+    setM2('')
+    setErros({})
+    // O valor por m² costuma se repetir entre os stands da mesma feira,
+    // então ele fica — é o campo que ele mais odiaria redigitar.
+  }
+
+  async function salvar(continuar = false) {
     if (!validar()) return
     setOcupado(true)
     try {
@@ -68,7 +76,12 @@ export function FormStand({ empresaId, feiraId, stand, aoFechar }: Props) {
         stand?.id,
       )
       toast(novo ? 'Stand cadastrado!' : 'Stand atualizado!')
-      aoFechar()
+      if (continuar) {
+        limpar()
+        setOcupado(false)
+      } else {
+        aoFechar()
+      }
     } catch {
       toast('Não deu para salvar. Tente de novo.', 'erro')
       setOcupado(false)
@@ -94,9 +107,18 @@ export function FormStand({ empresaId, feiraId, stand, aoFechar }: Props) {
       aoFechar={aoFechar}
       titulo={novo ? 'Novo stand' : 'Editar stand'}
       rodape={
-        <button onClick={salvar} disabled={ocupado} className="btn-primary w-full">
-          {ocupado ? <Loader2 size={20} className="animate-spin" /> : 'Salvar stand'}
-        </button>
+        <div className="space-y-2.5">
+          <button onClick={() => salvar(false)} disabled={ocupado} className="btn-primary w-full">
+            {ocupado ? <Loader2 size={20} className="animate-spin" /> : 'Salvar stand'}
+          </button>
+          {/* Uma feira tem vários stands. Sair e reabrir o formulário a cada
+              um é o tipo de atrito que faz ele voltar para a planilha. */}
+          {novo && (
+            <button onClick={() => salvar(true)} disabled={ocupado} className="btn-ghost w-full">
+              <Plus size={18} /> Salvar e cadastrar outro
+            </button>
+          )}
+        </div>
       }
     >
       <div className="space-y-5">

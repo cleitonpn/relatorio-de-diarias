@@ -13,9 +13,11 @@ interface Props {
   empresaId: string
   feira: Feira | null
   aoFechar: () => void
+  /** Chamado só quando a feira é NOVA, para encadear o próximo passo. */
+  aoCriar?: (feiraId: string, modo: ModoFeira) => void
 }
 
-export function FormFeira({ empresaId, feira, aoFechar }: Props) {
+export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
   const toast = useToast()
   const { empresa } = useAuth()
   const { dados: contratantes } = useContratantes()
@@ -59,7 +61,7 @@ export function FormFeira({ empresaId, feira, aoFechar }: Props) {
         contratanteId = existente?.id ?? (await criarContratante(empresaId, nomeContratante))
       }
 
-      await salvarFeira(
+      const feiraId = await salvarFeira(
         empresaId,
         {
           nome: nome.trim(),
@@ -88,6 +90,9 @@ export function FormFeira({ empresaId, feira, aoFechar }: Props) {
       )
       toast(novo ? 'Feira cadastrada!' : 'Feira atualizada!')
       aoFechar()
+      // Cadastrar a feira sozinha não serve de nada: o próximo passo é o que
+      // dá valor a ela. Em vez de deixar ele procurar, o app leva.
+      if (novo) aoCriar?.(feiraId, modo)
     } catch {
       toast('Não deu para salvar. Tente de novo.', 'erro')
       setOcupado(false)

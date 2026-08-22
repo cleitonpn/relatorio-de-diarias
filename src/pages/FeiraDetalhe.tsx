@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { Building2, ChevronRight, Pencil, Plus, Receipt } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useParams, useSearchParams } from 'react-router-dom'
+import { Building2, ChevronRight, Pencil, Plus, Receipt, Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCustos, useDiarias, useFeiras, useStands } from '@/hooks/useDados'
 import { BarraTopo, EspacoBarra } from '@/components/app/Navegacao'
@@ -21,6 +21,7 @@ type Aba = 'resultado' | 'equipe' | 'gastos' | 'stands'
 
 export function FeiraDetalhe() {
   const { feiraId } = useParams<{ feiraId: string }>()
+  const [parametros, setParametros] = useSearchParams()
   const { perfil } = useAuth()
   const { dados: feiras, carregando } = useFeiras()
   const feira = feiras.find((f) => f.id === feiraId) ?? null
@@ -34,6 +35,25 @@ export function FeiraDetalhe() {
   const [standAberto, setStandAberto] = useState<Stand | 'novo' | null>(null)
   const [custoAberto, setCustoAberto] = useState<Custo | 'novo' | null>(null)
   const [escalando, setEscalando] = useState(false)
+
+  /**
+   * Chegando de "feira cadastrada", o app abre o próximo passo sozinho:
+   * o formulário de stand (ou a escala, quando a feira é pacote fechado).
+   * O parâmetro é consumido na hora para um F5 não reabrir o formulário.
+   */
+  const comecar = parametros.get('comecar')
+  useEffect(() => {
+    if (!comecar) return
+    if (comecar === 'stands') {
+      setAba('stands')
+      setStandAberto('novo')
+    } else if (comecar === 'equipe') {
+      // Sem abrir a folha: se ele ainda não cadastrou ninguém, a escala não
+      // teria o que mostrar. O estado vazio da aba já convida com um botão.
+      setAba('equipe')
+    }
+    setParametros({}, { replace: true })
+  }, [comecar, setParametros])
 
   const resultado = useMemo(() => {
     if (!feira) return null
@@ -127,7 +147,15 @@ export function FeiraDetalhe() {
         )}
 
         {aba === 'stands' && (
-          <AbaStands stands={stands} aoAbrir={setStandAberto} />
+          <AbaStands
+            stands={stands}
+            aoAbrir={setStandAberto}
+            temEscala={diarias.length > 0}
+            aoEscalar={() => {
+              setAba('equipe')
+              setEscalando(true)
+            }}
+          />
         )}
 
         <EspacoBarra />
@@ -345,9 +373,13 @@ function AbaGastos({
 function AbaStands({
   stands,
   aoAbrir,
+  temEscala,
+  aoEscalar,
 }: {
   stands: Stand[]
   aoAbrir: (s: Stand | 'novo') => void
+  temEscala: boolean
+  aoEscalar: () => void
 }) {
   const receitaTotal = stands.reduce((t, s) => t + receitaDoStand(s), 0)
   const m2Total = stands.reduce((t, s) => t + s.m2, 0)
@@ -402,6 +434,22 @@ function AbaStands({
               </button>
             ))}
           </div>
+
+          {/* O stand sozinho não paga ninguém: o próximo passo é a equipe. */}
+          {!temEscala && (
+            <div className="p-4 rounded-3xl bg-brand-soft border border-brand/15 animate-fade-up">
+              <div className="text-[15px] font-bold text-brand-ink">
+                Stands cadastrados. Agora escale sua equipe.
+              </div>
+              <p className="text-[13.5px] text-muted mt-1 leading-relaxed">
+                Escolha quem vai trabalhar e em quais dias. É isso que gera o custo e o
+                pagamento de cada um.
+              </p>
+              <button onClick={aoEscalar} className="btn-primary w-full h-12 mt-3.5">
+                <Users size={18} /> Escalar equipe
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
