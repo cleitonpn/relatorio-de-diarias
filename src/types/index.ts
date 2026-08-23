@@ -73,6 +73,13 @@ export interface Empresa {
   assinatura: Assinatura
   /** Valor padrão de almoço por pessoa/dia, para pré-preencher lançamentos. */
   almocoPadrao: Centavos
+  /**
+   * O preço de tabela dele, por m².
+   *
+   * É a âncora da negociação: sem isso, empreiteiro novo abre a calculadora
+   * sem ter com o que comparar a proposta, que é justo quando ele mais precisa.
+   */
+  valorM2Padrao: Centavos | null
   aceiteTermos: { versao: string; em: Timestamp; ip: string | null } | null
   criadaEm: Timestamp
 }

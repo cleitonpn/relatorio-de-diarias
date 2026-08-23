@@ -40,6 +40,7 @@ export function FormPerfil({ perfil, empresa, ehDono, aoFechar }: Props) {
   const [ramo, setRamo] = useState<string | null>(empresa.ramo)
   const [cidade, setCidade] = useState(empresa.cidade ?? '')
   const [almoco, setAlmoco] = useState(empresa.almocoPadrao)
+  const [valorM2, setValorM2] = useState(empresa.valorM2Padrao ?? 0)
   const [ocupado, setOcupado] = useState(false)
   const [erros, setErros] = useState<Record<string, string>>({})
 
@@ -63,6 +64,7 @@ export function FormPerfil({ perfil, empresa, ehDono, aoFechar }: Props) {
           ramo: ramo ?? null,
           cidade: cidade.trim() || null,
           almocoPadrao: almoco,
+          valorM2Padrao: valorM2 > 0 ? valorM2 : null,
         })
       }
 
@@ -132,6 +134,13 @@ export function FormPerfil({ perfil, empresa, ehDono, aoFechar }: Props) {
               value={cidade}
               onChange={(e) => setCidade(e.target.value)}
               dica="Usada também no PIX que você gera"
+            />
+
+            <CampoDinheiro
+              rotulo="Quanto você cobra por m²"
+              valor={valorM2}
+              onChange={setValorM2}
+              dica="Seu preço de tabela. A calculadora compara as propostas com ele."
             />
 
             <CampoDinheiro

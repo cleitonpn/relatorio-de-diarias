@@ -3,6 +3,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { Sheet } from '@/components/ui/Sheet'
 import { Campo, CampoDinheiro, Selecao } from '@/components/ui/Campo'
 import { useToast } from '@/components/app/Toast'
+import { useAuth } from '@/contexts/AuthContext'
 import { apagarStand, salvarStand } from '@/lib/acoes'
 import { moeda } from '@/lib/format'
 import type { Stand, TipoCobranca } from '@/types'
@@ -16,12 +17,14 @@ interface Props {
 
 export function FormStand({ empresaId, feiraId, stand, aoFechar }: Props) {
   const toast = useToast()
+  const { empresa } = useAuth()
   const novo = !stand
 
   const [nome, setNome] = useState(stand?.nome ?? '')
   const [m2, setM2] = useState(String(stand?.m2 ?? ''))
   const [tipo, setTipo] = useState<TipoCobranca>(stand?.tipoCobranca ?? 'POR_M2')
-  const [valorM2, setValorM2] = useState(stand?.valorM2 ?? 0)
+  // Stand novo já nasce com o preço de tabela dele preenchido.
+  const [valorM2, setValorM2] = useState(stand?.valorM2 ?? empresa?.valorM2Padrao ?? 0)
   const [valorTotal, setValorTotal] = useState(stand?.valorTotal ?? 0)
   const [ocupado, setOcupado] = useState(false)
   const [erros, setErros] = useState<Record<string, string>>({})

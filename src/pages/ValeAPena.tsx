@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Calculator, Send, TrendingUp } from 'lucide-react'
+import { AlertTriangle, Calculator, Send, Tag, TrendingUp } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useColaboradores, useFeiras, useTodosStands } from '@/hooks/useDados'
 import { BarraTopo, EspacoBarra } from '@/components/app/Navegacao'
@@ -34,10 +35,14 @@ export function ValeAPena() {
     return Math.round(equipe.reduce((t, p) => t + p.diariaPadrao, 0) / equipe.length)
   }, [equipe])
 
+  /** O que ele DIZ que cobra (tabela) e o que ele TEM recebido (histórico). */
+  const tabela = empresa?.valorM2Padrao ?? null
   const habitual = useMemo(
     () => precoHabitualPorM2(feiras, agruparPorFeira(stands)),
     [feiras, stands],
   )
+  /** A tabela manda; sem ela, o histórico serve de âncora. */
+  const referencia = tabela ?? habitual
 
   const [valor, setValor] = useState(0)
   const [m2, setM2] = useState('')
@@ -54,6 +59,9 @@ export function ValeAPena() {
   const numDias = Number(dias) || 0
   const numPessoas = Number(pessoas) || 0
   const preencheu = valor > 0 && numDias > 0 && numPessoas > 0
+
+  /** Pela tabela dele, quanto essa metragem deveria pagar. */
+  const valorDeTabela = referencia && metros > 0 ? Math.round(referencia * metros) : null
 
   const veredito = useMemo(
     () =>
@@ -168,6 +176,42 @@ export function ValeAPena() {
           />
         </div>
 
+        {valorDeTabela !== null && (
+          <button
+            onClick={() => setValor(valorDeTabela)}
+            className="w-full flex items-center gap-3.5 p-4 rounded-3xl bg-brand-soft border border-brand/15 text-left active:scale-[.99] transition"
+          >
+            <Tag size={20} className="shrink-0 text-brand" />
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-bold text-brand uppercase tracking-wide">
+                Pela sua tabela
+              </div>
+              <div className="tnum text-[19px] font-extrabold text-brand-ink">
+                {moeda(valorDeTabela)}
+              </div>
+              <div className="text-[12.5px] text-muted mt-0.5">
+                {metros} m² × {moeda(referencia!)} — toque para usar esse valor
+              </div>
+            </div>
+          </button>
+        )}
+
+        {!referencia && (
+          <Link
+            to="/ajustes"
+            className="flex items-start gap-2.5 p-4 rounded-3xl bg-alerta-soft border border-alerta/20"
+          >
+            <AlertTriangle size={19} className="shrink-0 text-alerta mt-0.5" />
+            <div className="text-[13.5px] leading-relaxed">
+              <strong className="text-ink">Cadastre quanto você cobra por m².</strong>{' '}
+              <span className="text-muted">
+                Sem isso o app não consegue dizer se a proposta está acima ou abaixo do seu
+                preço. Fica em Ajustes → Meus dados.
+              </span>
+            </div>
+          </Link>
+        )}
+
         {!preencheu ? (
           <div className="p-5 rounded-3xl bg-raised text-center">
             <p className="text-[14.5px] text-muted leading-relaxed">
@@ -273,12 +317,12 @@ export function ValeAPena() {
               />
             </div>
 
-            {/* Comparação com o histórico dele */}
-            {metros > 0 && habitual && habitual > 0 && (
+            {/* Como essa proposta se compara ao preço dele */}
+            {metros > 0 && referencia && referencia > 0 && (
               <div
                 className={cn(
                   'p-4 rounded-3xl border',
-                  veredito.valorPorM2 >= habitual
+                  veredito.valorPorM2 >= referencia
                     ? 'bg-lucro-soft border-lucro/20'
                     : 'bg-alerta-soft border-alerta/20',
                 )}
@@ -287,10 +331,26 @@ export function ValeAPena() {
                   Essa proposta paga {moeda(veredito.valorPorM2)} o m².
                 </div>
                 <div className="text-[13.5px] text-muted mt-1 leading-relaxed">
-                  Você costuma receber <strong>{moeda(habitual)}</strong> o m² nas suas feiras —
-                  {veredito.valorPorM2 >= habitual
-                    ? ' essa está acima do seu normal.'
-                    : ` essa está ${percentual((habitual - veredito.valorPorM2) / habitual)} abaixo.`}
+                  {tabela
+                    ? `Sua tabela é ${moeda(tabela)} o m² — `
+                    : `Você costuma receber ${moeda(referencia)} o m² — `}
+                  {veredito.valorPorM2 >= referencia
+                    ? 'essa está no seu preço ou acima.'
+                    : `essa está ${percentual((referencia - veredito.valorPorM2) / referencia)} abaixo.`}
+                </div>
+              </div>
+            )}
+
+            {/* O desconto que ele dá sem perceber: tabela contra realidade */}
+            {tabela && habitual && habitual > 0 && habitual < tabela * 0.95 && (
+              <div className="p-4 rounded-3xl bg-raised border border-line">
+                <div className="text-[14.5px] font-bold leading-snug">
+                  Atenção ao seu histórico
+                </div>
+                <div className="text-[13.5px] text-muted mt-1 leading-relaxed">
+                  Sua tabela é {moeda(tabela)} o m², mas nas feiras que você já fechou você
+                  recebeu {moeda(habitual)} na média —{' '}
+                  {percentual((tabela - habitual) / tabela)} abaixo do seu próprio preço.
                 </div>
               </div>
             )}

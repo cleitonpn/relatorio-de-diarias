@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Loader2, LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { Campo, Selecao } from '@/components/ui/Campo'
+import { Campo, CampoDinheiro, Selecao } from '@/components/ui/Campo'
 import { Sheet } from '@/components/ui/Sheet'
 import { ConteudoTermos } from './Termos'
 import { Check } from 'lucide-react'
@@ -24,6 +24,7 @@ export function Onboarding({ aoVoltar }: { aoVoltar?: () => void } = {}) {
   const [nome, setNome] = useState('')
   const [ramo, setRamo] = useState<string | null>(null)
   const [cidade, setCidade] = useState('')
+  const [valorM2, setValorM2] = useState(0)
   const [codigo, setCodigo] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
@@ -47,6 +48,7 @@ export function Onboarding({ aoVoltar }: { aoVoltar?: () => void } = {}) {
         ramo: ramo!,
         cidade,
         codigoIndicacao: codigo,
+        valorM2Padrao: valorM2 > 0 ? valorM2 : null,
         aceitouTermos: true,
       })
     } catch (e) {
@@ -113,6 +115,13 @@ export function Onboarding({ aoVoltar }: { aoVoltar?: () => void } = {}) {
             value={cidade}
             onChange={(e) => setCidade(e.target.value)}
             dica="Usada também no PIX que você vai gerar"
+          />
+
+          <CampoDinheiro
+            rotulo="Quanto você cobra por m² (opcional)"
+            valor={valorM2}
+            onChange={setValorM2}
+            dica="O app usa isso para dizer se uma proposta está boa. Dá para mudar depois."
           />
 
           <Campo
