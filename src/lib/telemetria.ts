@@ -130,13 +130,32 @@ let contexto: Contexto | null = null
  * antes disso o app não sabe de quem é o uso, e evento sem dono não serve.
  */
 export function definirContexto(novo: Contexto | null) {
-  const mudouDeConta = contexto?.empresaId !== novo?.empresaId
   contexto = novo
-  if (novo?.desligado) {
+  if (!novo) return
+
+  if (novo.desligado) {
     esvaziarBuffer()
+    gravarDono(novo.empresaId)
     return
   }
-  if (novo && mudouDeConta) void enviar()
+
+  const dono = lerDono()
+
+  if (dono === null) {
+    // Buffer sem dono: é o cadastro, em que `conta_criada` acontece antes de a
+    // conta existir. Quem acabou de entrar adota o que está guardado.
+    gravarDono(novo.empresaId)
+    void enviar()
+    return
+  }
+
+  if (dono !== novo.empresaId) {
+    // Trocou de conta no mesmo aparelho — dois empreiteiros dividindo o celular
+    // do escritório. O que sobrou no buffer é do anterior, e lançar na conta de
+    // quem acabou de entrar sujaria os dois números. Descarta.
+    esvaziarBuffer()
+    gravarDono(novo.empresaId)
+  }
 }
 
 /* ──────────────────────────────── Buffer ──────────────────────────────── */
@@ -148,6 +167,7 @@ interface Registrado {
 }
 
 const CHAVE_BUFFER = 'prumo:uso'
+const CHAVE_DONO = 'prumo:uso:dono'
 const CHAVE_SESSAO = 'prumo:uso:sessao'
 /** Quantos eventos acumular antes de mandar. */
 const LOTE = 20
@@ -185,6 +205,30 @@ function esvaziarBuffer() {
   buffer = []
   try {
     localStorage.removeItem(CHAVE_BUFFER)
+  } catch {
+    /* idem */
+  }
+}
+
+/**
+ * De quem é o que está guardado no aparelho.
+ *
+ * Fica em disco, e não em memória, porque o caso que importa é justamente o que
+ * atravessa o fechar do app: dois empreiteiros dividindo o celular do
+ * escritório. `null` significa que o buffer ainda não tem dono — o que só
+ * acontece no cadastro, antes de a conta existir.
+ */
+function lerDono(): string | null {
+  try {
+    return localStorage.getItem(CHAVE_DONO)
+  } catch {
+    return null
+  }
+}
+
+function gravarDono(empresaId: string) {
+  try {
+    localStorage.setItem(CHAVE_DONO, empresaId)
   } catch {
     /* idem */
   }
