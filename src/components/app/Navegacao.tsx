@@ -132,7 +132,7 @@ export function MenuLateral({ veFinanceiro = true }: { veFinanceiro?: boolean })
             <path d="M26 42v-9h12v9" fill="none" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <span className="text-[19px] font-extrabold">Empreita</span>
+        <span className="text-[19px] font-extrabold">Prumo</span>
       </div>
 
       <nav className="flex-1 px-3 space-y-1">

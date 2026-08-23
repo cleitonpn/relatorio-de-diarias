@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Empreita — Gestão de Diárias',
-        short_name: 'Empreita',
+        name: 'Prumo — Gestão de Diárias',
+        short_name: 'Prumo',
         description: 'Controle de feiras, equipe, diárias e pagamentos para empreiteiros.',
         theme_color: '#4338CA',
         background_color: '#0B0D14',

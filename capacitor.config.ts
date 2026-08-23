@@ -8,8 +8,8 @@ import type { CapacitorConfig } from '@capacitor/cli'
  * (ver src/lib/platform.ts).
  */
 const config: CapacitorConfig = {
-  appId: 'br.com.empreita.app',
-  appName: 'Empreita',
+  appId: 'br.com.prumo.app',
+  appName: 'Prumo',
   webDir: 'dist',
   android: {
     allowMixedContent: false,

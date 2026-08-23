@@ -316,3 +316,98 @@ export function dataPrevistaPagamento(feira: Feira, referencia: DataISO): DataIS
       return null
   }
 }
+
+/* ------------------------ Vale a pena pegar? ------------------------ */
+
+export interface Proposta {
+  /** O que o contratante ofereceu, no total. */
+  valorProposto: Centavos
+  m2: number
+  /** Quantos dias de trabalho a obra leva. */
+  dias: number
+  /** Quantas pessoas por dia. */
+  pessoas: number
+  /** Diária média da equipe dele. */
+  diariaMedia: Centavos
+  almocoPorPessoaDia: Centavos
+  /** Combustível, material, estacionamento — o que ele já prevê. */
+  outrosCustos: Centavos
+}
+
+export interface Veredito {
+  totalDiarias: number
+  custoMaoDeObra: Centavos
+  custoAlmoco: Centavos
+  custoTotal: Centavos
+  sobra: Centavos
+  margem: number
+  saude: Saude
+  valorPorM2: Centavos
+  /** Quanto ele precisaria receber para a margem ficar boa. */
+  contraproposta: Centavos
+  contrapropostaPorM2: Centavos
+  /** Abaixo disso ele trabalha de graça. */
+  pontoDeEquilibrio: Centavos
+  /** Teto de gasto com mão de obra mantendo a margem-alvo. */
+  tetoMaoDeObra: Centavos
+}
+
+/** Margem que o app considera saudável ao sugerir uma contraproposta. */
+export const MARGEM_ALVO = 0.3
+
+/**
+ * A conta que ele faz de cabeça no telefone, e erra.
+ *
+ * O gerente liga oferecendo um valor; em trinta segundos ele precisa saber se
+ * dá para trabalhar. Aqui a resposta sai com o número da contraproposta junto,
+ * porque saber que está ruim sem saber quanto pedir não resolve nada.
+ */
+export function avaliarProposta(p: Proposta): Veredito {
+  const totalDiarias = Math.max(0, p.dias) * Math.max(0, p.pessoas)
+  const custoMaoDeObra = totalDiarias * p.diariaMedia
+  const custoAlmoco = totalDiarias * p.almocoPorPessoaDia
+  const custoTotal = custoMaoDeObra + custoAlmoco + p.outrosCustos
+
+  const sobra = p.valorProposto - custoTotal
+  const margem = p.valorProposto > 0 ? sobra / p.valorProposto : 0
+
+  // Para sobrar a margem-alvo, a receita precisa ser custo / (1 - margem).
+  const contraproposta = Math.round(custoTotal / (1 - MARGEM_ALVO))
+
+  return {
+    totalDiarias,
+    custoMaoDeObra,
+    custoAlmoco,
+    custoTotal,
+    sobra,
+    margem,
+    saude: saudeDoResultado(margem, p.valorProposto),
+    valorPorM2: p.m2 > 0 ? Math.round(p.valorProposto / p.m2) : 0,
+    contraproposta,
+    contrapropostaPorM2: p.m2 > 0 ? Math.round(contraproposta / p.m2) : 0,
+    pontoDeEquilibrio: custoTotal,
+    tetoMaoDeObra: Math.max(
+      0,
+      Math.round(p.valorProposto * (1 - MARGEM_ALVO)) - p.almocoPorPessoaDia * totalDiarias - p.outrosCustos,
+    ),
+  }
+}
+
+/**
+ * O quanto ele costuma receber por m², olhando o histórico dele.
+ *
+ * É a comparação que só este app consegue fazer: a proposta é boa ou ruim
+ * comparada ao que ELE cobra, não a uma média de mercado inventada.
+ */
+export function precoHabitualPorM2(feiras: Feira[], standsPorFeira: Record<string, Stand[]>): Centavos | null {
+  let receita = 0
+  let metros = 0
+  for (const feira of feiras) {
+    const stands = standsPorFeira[feira.id] ?? []
+    const m2 = m2DaFeira(feira, stands)
+    if (m2 <= 0) continue
+    receita += receitaDaFeira(feira, stands)
+    metros += m2
+  }
+  return metros > 0 ? Math.round(receita / metros) : null
+}

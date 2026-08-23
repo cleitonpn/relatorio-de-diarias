@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Loader2, LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Campo, Selecao } from '@/components/ui/Campo'
+import { Sheet } from '@/components/ui/Sheet'
+import { ConteudoTermos } from './Termos'
+import { Check } from 'lucide-react'
 
 const RAMOS = [
   { valor: 'Tapeçaria', rotulo: 'Tapeçaria', emoji: '🧵' },
@@ -24,15 +27,28 @@ export function Onboarding({ aoVoltar }: { aoVoltar?: () => void } = {}) {
   const [codigo, setCodigo] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
+  const [aceitou, setAceitou] = useState(false)
+  const [lendoTermos, setLendoTermos] = useState(false)
 
   const podeSeguir =
-    nomePessoa.trim().length >= 2 && nome.trim().length >= 2 && !!ramo && cidade.trim().length >= 2
+    nomePessoa.trim().length >= 2 &&
+    nome.trim().length >= 2 &&
+    !!ramo &&
+    cidade.trim().length >= 2 &&
+    aceitou
 
   async function enviar() {
     setErro(null)
     setOcupado(true)
     try {
-      await criarEmpresa({ nome, nomePessoa, ramo: ramo!, cidade, codigoIndicacao: codigo })
+      await criarEmpresa({
+        nome,
+        nomePessoa,
+        ramo: ramo!,
+        cidade,
+        codigoIndicacao: codigo,
+        aceitouTermos: true,
+      })
     } catch (e) {
       setErro((e as Error).message || 'Não deu para criar. Tente de novo.')
       setOcupado(false)
@@ -108,6 +124,36 @@ export function Onboarding({ aoVoltar }: { aoVoltar?: () => void } = {}) {
             maxLength={6}
           />
 
+          {/* Aceite antes de criar a conta — com o texto a um toque de distância */}
+          <button
+            type="button"
+            onClick={() => setAceitou((v) => !v)}
+            className="w-full flex items-start gap-3 p-4 rounded-2xl bg-raised border border-line text-left active:scale-[.99] transition"
+          >
+            <span
+              className={`shrink-0 w-6 h-6 mt-0.5 rounded-lg border-2 grid place-items-center transition ${
+                aceitou ? 'bg-brand border-brand text-white' : 'border-line'
+              }`}
+            >
+              {aceitou && <Check size={15} strokeWidth={3} />}
+            </span>
+            <span className="text-[14px] leading-relaxed">
+              Li e aceito os{' '}
+              <span
+                role="link"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setLendoTermos(true)
+                }}
+                className="font-bold text-brand underline"
+              >
+                Termos de Uso e a Política de Privacidade
+              </span>
+              .
+            </span>
+          </button>
+
           {erro && (
             <div className="px-4 py-3 rounded-2xl bg-custo-soft text-custo text-[14px] font-medium">
               {erro}
@@ -129,6 +175,29 @@ export function Onboarding({ aoVoltar }: { aoVoltar?: () => void } = {}) {
           </p>
         </div>
       </div>
+
+      {lendoTermos && (
+        <Sheet
+          aberto
+          aoFechar={() => setLendoTermos(false)}
+          titulo="Termos de Uso"
+          subtitulo="e Política de Privacidade"
+          alturaTotal
+          rodape={
+            <button
+              onClick={() => {
+                setAceitou(true)
+                setLendoTermos(false)
+              }}
+              className="btn-primary w-full"
+            >
+              Li e aceito
+            </button>
+          }
+        >
+          <ConteudoTermos />
+        </Sheet>
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Award, ChevronRight, Settings, TrendingDown, Wallet } from 'lucide-react'
+import { Award, Calculator, ChevronRight, Settings, TrendingDown, Wallet } from 'lucide-react'
 import { useFeiras, useTodasDiarias, useTodosCustos, useTodosStands } from '@/hooks/useDados'
 import { BarraTopo, EspacoBarra } from '@/components/app/Navegacao'
 import { CarregandoLista, EstadoVazio } from '@/components/ui/Estados'
@@ -99,6 +99,23 @@ export function MeuDinheiro() {
       />
 
       <main className="max-w-2xl lg:max-w-3xl mx-auto px-4 pt-4 space-y-4">
+        {/* A pergunta que vem antes de tudo: vale a pena pegar? */}
+        <Link
+          to="/vale-a-pena"
+          className="flex items-center gap-3.5 p-4 rounded-3xl bg-brand-soft border border-brand/15 active:scale-[.99] transition"
+        >
+          <div className="shrink-0 w-11 h-11 rounded-2xl bg-brand text-white grid place-items-center">
+            <Calculator size={21} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-[15.5px] text-brand-ink">Vale a pena pegar?</div>
+            <div className="text-[13px] text-muted">
+              Calcule antes de aceitar um serviço novo
+            </div>
+          </div>
+          <ChevronRight size={20} className="shrink-0 text-brand-ink/60" />
+        </Link>
+
         {/* Período */}
         <div className="scroll-x -mx-4 px-4">
           <div className="flex gap-2 pb-1">

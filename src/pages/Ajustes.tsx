@@ -192,11 +192,15 @@ export function Ajustes() {
           </div>
         </div>
 
+        <Link to="/termos" className="block text-center text-[13.5px] font-semibold text-muted py-2">
+          Termos de Uso e Política de Privacidade
+        </Link>
+
         <button onClick={sair} className="btn-ghost w-full text-custo">
           <LogOut size={18} /> Sair da conta
         </button>
 
-        <p className="text-center text-[12px] text-faint pt-2">Empreita · versão 0.1</p>
+        <p className="text-center text-[12px] text-faint pt-2">Prumo · versão 0.2</p>
 
         <EspacoBarra />
       </main>

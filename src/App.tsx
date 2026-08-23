@@ -16,6 +16,8 @@ import { Admin } from '@/pages/Admin'
 import { EntrarPorConvite } from '@/pages/EntrarPorConvite'
 import { MinhaConta } from '@/pages/MinhaConta'
 import { Contador } from '@/pages/Contador'
+import { Termos } from '@/pages/Termos'
+import { ValeAPena } from '@/pages/ValeAPena'
 import { AdminSemConta } from '@/pages/AdminSemConta'
 import { useVales } from '@/hooks/useDados'
 import { usePapel } from '@/contexts/AuthContext'
@@ -66,6 +68,11 @@ function AreaLogada() {
           <Route path="/equipe" element={<Equipe />} />
           <Route path="/pagamentos" element={<Pagamentos />} />
           <Route path="/ajustes" element={<Ajustes />} />
+          <Route path="/termos" element={<Termos />} />
+          <Route
+            path="/vale-a-pena"
+            element={veFinanceiro ? <ValeAPena /> : <Navigate to="/" replace />}
+          />
           <Route
             path="/contador"
             element={veFinanceiro ? <Contador /> : <Navigate to="/" replace />}

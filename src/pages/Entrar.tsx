@@ -54,9 +54,9 @@ export function Entrar() {
               <path d="M26 42v-9h12v9" fill="none" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <h1 className="text-[32px] font-extrabold leading-tight">Empreita</h1>
+          <h1 className="text-[32px] font-extrabold leading-tight">Prumo</h1>
           <p className="text-[16px] text-white/80 mt-1.5 leading-relaxed">
-            Controle suas feiras, sua equipe e o quanto sobra pra você.
+            Seu trabalho no prumo: feiras, equipe e o quanto sobra pra você.
           </p>
         </div>
       </div>

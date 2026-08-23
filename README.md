@@ -1,10 +1,13 @@
-# Empreita — gestão de diárias para empreiteiros
+# Prumo — gestão de diárias para empreiteiros
+
+> *Seu trabalho no prumo.*
 
 Ferramenta para o empreiteiro de feiras e stands controlar **quanto ganha, quanto gasta
 e quanto sobra pra ele** — e pagar a equipe pelo PIX sem errar valor.
 
-> **Nome provisório.** "Empreita" é uma sugestão; trocar é rápido (aparece em
-> `index.html`, `vite.config.ts`, `capacitor.config.ts` e na tela de login).
+> **Verificar antes do lançamento comercial:** disponibilidade de `prumo.com.br`
+> no registro.br e busca de marca no INPI. Trocar o nome depois de publicar na
+> Play Store dá dor de cabeça por causa do `appId` (`br.com.prumo.app`).
 
 ---
 
@@ -31,8 +34,11 @@ e quanto sobra pra ele** — e pagar a equipe pelo PIX sem errar valor.
 | Nome próprio editável (independente da conta Google) | ✅ |
 | **Painel admin**: contas, planos, descontos, exclusão, indicações | ✅ |
 | **Modo demonstração**: enche sua conta para testar todas as telas | ✅ |
-| Tela do funcionário (link + PIN) | ⏳ próxima etapa |
-| Perfil de encarregado | ⏳ próxima etapa |
+| Tela do funcionário (convite + Google) | ✅ |
+| Perfil de encarregado, com chave do financeiro | ✅ |
+| **Relatório para o contador** (planilha + WhatsApp) | ✅ |
+| **"Vale a pena?"** — calculadora de proposta | ✅ |
+| Termos de Uso e aceite no cadastro | ✅ |
 | Cobrança pelo Mercado Pago | ⏳ próxima etapa |
 | APK / Play Store | ⏳ próxima etapa |
 

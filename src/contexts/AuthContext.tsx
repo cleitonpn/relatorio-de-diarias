@@ -28,6 +28,7 @@ import {
 import { auth, db, googleProvider } from '@/lib/firebase'
 import { docEmpresa, docUsuario } from '@/lib/db'
 import { DIAS_TESTE, gerarCodigoIndicacao } from '@/lib/planos'
+import { VERSAO_TERMOS } from '@/lib/termos'
 import type { Convite, Empresa, Usuario } from '@/types'
 
 interface EstadoAuth {
@@ -52,6 +53,7 @@ interface EstadoAuth {
     ramo: string
     cidade: string
     codigoIndicacao?: string
+    aceitouTermos: boolean
   }) => Promise<void>
   sair: () => Promise<void>
 }
@@ -186,7 +188,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           creditoMeses: 0,
         },
         almocoPadrao: 2500,
-        aceiteTermos: null,
+        // Data e versão do aceite: é a prova de que ele concordou, e o que
+        // permite pedir aceite de novo quando os termos mudarem.
+        aceiteTermos: dados.aceitouTermos
+          ? { versao: VERSAO_TERMOS, em: Timestamp.now(), ip: null }
+          : null,
         criadaEm: serverTimestamp(),
       }
 
