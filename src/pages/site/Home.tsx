@@ -103,10 +103,10 @@ function Cabecalho() {
         rolou ? 'bg-[#07080F]/80 backdrop-blur-xl border-b border-white/[0.07]' : ''
       }`}
     >
-      <div className="max-w-6xl mx-auto px-5 h-[68px] flex items-center gap-6">
+      <div className="max-w-6xl mx-auto px-5 h-[68px] flex items-center gap-3 sm:gap-6 whitespace-nowrap">
         <Logo />
 
-        <nav className="hidden md:flex items-center gap-1 ml-4">
+        <nav className="hidden lg:flex items-center gap-1 ml-4">
           {links.map(([texto, href]) => (
             <a
               key={href}
@@ -126,13 +126,13 @@ function Cabecalho() {
         >
           Entrar
         </Link>
-        <Link to="/entrar" className="hidden sm:block">
+        <Link to="/entrar" className="hidden lg:block">
           <BotaoBrilho pequeno>Testar grátis</BotaoBrilho>
         </Link>
 
         <button
           onClick={() => setAberto((v) => !v)}
-          className="md:hidden w-10 h-10 grid place-items-center rounded-xl text-white/80 hover:bg-white/[0.06]"
+          className="lg:hidden w-10 h-10 grid place-items-center rounded-xl text-white/80 hover:bg-white/[0.06]"
           aria-label="Menu"
         >
           {aberto ? <X size={22} /> : <Menu size={22} />}
@@ -140,7 +140,7 @@ function Cabecalho() {
       </div>
 
       {aberto && (
-        <div className="md:hidden border-t border-white/[0.07] bg-[#07080F]/95 backdrop-blur-xl px-5 py-4 space-y-1">
+        <div className="lg:hidden border-t border-white/[0.07] bg-[#07080F]/95 backdrop-blur-xl px-5 py-4 space-y-1">
           {links.map(([texto, href]) => (
             <a
               key={href}
