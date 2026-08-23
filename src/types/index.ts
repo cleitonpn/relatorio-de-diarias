@@ -80,6 +80,14 @@ export interface Empresa {
    * sem ter com o que comparar a proposta, que é justo quando ele mais precisa.
    */
   valorM2Padrao: Centavos | null
+  /**
+   * Coleta de dados de uso (quais telas ele abre, onde desiste, onde dá erro).
+   * Nunca envolve valor, nome ou dado da equipe — ver `lib/telemetria.ts`.
+   *
+   * Ausente quer dizer ligado: só o `false` explícito, marcado nos Ajustes,
+   * desliga.
+   */
+  permiteTelemetria?: boolean | null
   aceiteTermos: { versao: string; em: Timestamp; ip: string | null } | null
   criadaEm: Timestamp
 }

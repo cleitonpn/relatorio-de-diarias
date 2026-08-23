@@ -22,6 +22,7 @@ import {
   type PeriodoFase,
   type PoliticaPagamento,
 } from '@/types'
+import { useFluxo } from '@/hooks/useTelemetria'
 
 interface Props {
   empresaId: string
@@ -32,6 +33,8 @@ interface Props {
 }
 
 export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
+  // Mede quem abre este formulário e sai sem terminar.
+  const concluir = useFluxo('nova_feira')
   const toast = useToast()
   const navigate = useNavigate()
   const { empresa } = useAuth()
@@ -178,6 +181,7 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
       }
 
       toast(novo ? 'Feira cadastrada!' : 'Feira atualizada!')
+      concluir()
       aoFechar()
       // Cadastrar a feira sozinha não serve de nada: o próximo passo é o que
       // dá valor a ela. Em vez de deixar ele procurar, o app leva.

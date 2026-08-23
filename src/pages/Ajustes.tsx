@@ -19,6 +19,7 @@ import { mostraCobranca } from '@/lib/platform'
 import { plano, PLANOS, PREMIOS_INDICACAO } from '@/lib/planos'
 import { moeda } from '@/lib/format'
 import { MARCA } from '@/lib/marca'
+import { definirTelemetria } from '@/lib/acoes'
 import { Sheet } from '@/components/ui/Sheet'
 import { FormPerfil } from './FormPerfil'
 import { EquipeGestao } from './EquipeGestao'
@@ -30,6 +31,7 @@ export function Ajustes() {
   const [vendoPlanos, setVendoPlanos] = useState(false)
   const [editandoPerfil, setEditandoPerfil] = useState(false)
   const [vendoGestao, setVendoGestao] = useState(false)
+  const [salvandoUso, setSalvandoUso] = useState(false)
 
   if (!perfil || !empresa) return null
 
@@ -183,7 +185,7 @@ export function Ajustes() {
         )}
 
         {/* Privacidade */}
-        <div className="card p-5">
+        <div className="card p-5 space-y-4">
           <div className="flex items-start gap-3">
             <ShieldCheck size={20} className="shrink-0 text-lucro mt-0.5" />
             <div className="text-[13.5px] text-muted leading-relaxed">
@@ -191,6 +193,43 @@ export function Ajustes() {
               enxerga suas feiras, seus valores ou seu lucro.
             </div>
           </div>
+
+          {/* Só o dono decide isso pela conta inteira. */}
+          {perfil.papel === 'DONO' && (
+            <div className="pt-4 border-t border-line">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={empresa.permiteTelemetria !== false}
+                  disabled={salvandoUso}
+                  onChange={async (e) => {
+                    const marcar = e.target.checked
+                    setSalvandoUso(true)
+                    try {
+                      await definirTelemetria(empresa.id, marcar)
+                      toast(marcar ? 'Obrigado! Isso ajuda muito.' : 'Coleta desligada.')
+                    } catch {
+                      toast('Não deu para salvar.', 'erro')
+                    } finally {
+                      setSalvandoUso(false)
+                    }
+                  }}
+                  className="mt-0.5 w-5 h-5 shrink-0 accent-current text-brand"
+                />
+                <span className="min-w-0">
+                  <span className="block font-semibold text-[15px]">
+                    Ajudar a melhorar o {MARCA.nome}
+                  </span>
+                  <span className="block text-[13px] text-muted leading-relaxed mt-0.5">
+                    Envia só o caminho que você faz no aplicativo: quais telas abre, onde
+                    desiste, onde dá erro. <strong className="text-ink">Nunca</strong> vai
+                    valor, nome, chave PIX nem nada da sua equipe. É isso que mostra onde o
+                    aplicativo está difícil de usar.
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
         </div>
 
         <Link to="/termos" className="block text-center text-[13.5px] font-semibold text-muted py-2">

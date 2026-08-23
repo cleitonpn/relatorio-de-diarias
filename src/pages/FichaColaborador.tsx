@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { desativarColaborador, reativarColaborador, salvarColaborador } from '@/lib/acoes'
 import { validarChavePix } from '@/lib/pix'
 import type { Colaborador, TipoChavePix } from '@/types'
+import { useFluxo } from '@/hooks/useTelemetria'
 
 function nomeCurtoDe(nome: string) {
   return nome.trim().split(' ')[0] || 'a pessoa'
@@ -28,6 +29,8 @@ interface Props {
 }
 
 export function FichaColaborador({ empresaId, colaborador, aoFechar }: Props) {
+  // Mede quem abre este formulário e sai sem terminar.
+  const concluir = useFluxo('novo_colaborador')
   const toast = useToast()
   const { empresa } = useAuth()
   const novo = !colaborador
@@ -77,6 +80,7 @@ export function FichaColaborador({ empresaId, colaborador, aoFechar }: Props) {
         colaborador?.id,
       )
       toast(novo ? 'Pessoa cadastrada!' : 'Dados salvos!')
+      concluir()
       aoFechar()
     } catch {
       toast('Não deu para salvar. Tente de novo.', 'erro')

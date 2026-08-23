@@ -6,6 +6,7 @@ import { useToast } from '@/components/app/Toast'
 import { apagarCusto, salvarCusto } from '@/lib/acoes'
 import { hojeISO } from '@/lib/format'
 import { CATEGORIAS_CUSTO, type CategoriaCusto, type Custo } from '@/types'
+import { useFluxo } from '@/hooks/useTelemetria'
 
 interface Props {
   empresaId: string
@@ -15,6 +16,8 @@ interface Props {
 }
 
 export function FormCusto({ empresaId, feiraId, custo, aoFechar }: Props) {
+  // Mede quem abre este formulário e sai sem terminar.
+  const concluir = useFluxo('novo_custo')
   const toast = useToast()
   const novo = !custo
 
@@ -46,6 +49,7 @@ export function FormCusto({ empresaId, feiraId, custo, aoFechar }: Props) {
         custo?.id,
       )
       toast(novo ? 'Gasto lançado!' : 'Gasto atualizado!')
+      concluir()
       aoFechar()
     } catch {
       toast('Não deu para salvar. Tente de novo.', 'erro')

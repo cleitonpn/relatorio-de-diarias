@@ -29,6 +29,7 @@ import { auth, db, googleProvider } from '@/lib/firebase'
 import { docEmpresa, docUsuario } from '@/lib/db'
 import { DIAS_TESTE, gerarCodigoIndicacao } from '@/lib/planos'
 import { VERSAO_TERMOS } from '@/lib/termos'
+import { registrar } from '@/lib/telemetria'
 import type { Centavos, Convite, Empresa, Usuario } from '@/types'
 
 interface EstadoAuth {
@@ -215,6 +216,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         convite: null,
         criadoEm: serverTimestamp(),
       } as never)
+
+      registrar({
+        nome: 'conta_criada',
+        temPrecoM2: !!dados.valorM2Padrao,
+        porIndicacao: !!dados.codigoIndicacao?.trim(),
+      })
     },
     [],
   )
@@ -253,6 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } as never)
 
       await updateDoc(conviteRef, { usado: true, usadoPor: user.uid })
+      registrar({ nome: 'convite_aceito', papel: convite.papel })
     },
     [],
   )

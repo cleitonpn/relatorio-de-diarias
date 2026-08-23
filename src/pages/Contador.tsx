@@ -20,6 +20,7 @@ import {
   resumoParaTexto,
 } from '@/lib/contador'
 import { dataParaISO, moeda } from '@/lib/format'
+import { registrar } from '@/lib/telemetria'
 
 type Faixa = 'MES' | 'MES_PASSADO' | 'TRIMESTRE' | 'ANO'
 
@@ -77,11 +78,13 @@ export function Contador() {
 
   function baixar() {
     baixarArquivo(csvDoContador(pacote, empresa?.nome ?? 'Minha empresa'), nomeArquivo)
+    registrar({ nome: 'contador_exportado', formato: 'csv' })
     toast('Planilha baixada! Mande para o contador.')
   }
 
   async function enviarResumo() {
     const texto = resumoParaTexto(pacote, empresa?.nome ?? 'Minha empresa')
+    registrar({ nome: 'contador_exportado', formato: 'texto' })
     if (navigator.share) {
       try {
         await navigator.share({ text: texto })

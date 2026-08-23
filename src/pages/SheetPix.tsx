@@ -7,6 +7,7 @@ import { useToast } from '@/components/app/Toast'
 import { gerarPixCopiaECola, validarChavePix } from '@/lib/pix'
 import { moeda } from '@/lib/format'
 import type { Centavos, Colaborador } from '@/types'
+import { registrar } from '@/lib/telemetria'
 
 interface Props {
   colaborador: Colaborador
@@ -77,6 +78,7 @@ export function SheetPix({
       campo.remove()
     }
     setCopiado(true)
+    registrar({ nome: 'pix_copiado', tipoChave: colaborador.chavePixTipo! })
     toast('Código copiado! Cole no seu banco.')
     setTimeout(() => setCopiado(false), 2500)
   }

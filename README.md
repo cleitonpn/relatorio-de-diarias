@@ -80,6 +80,20 @@ Console do Firebase → **Authentication** → **Settings** → **Domínios auto
 adicionar o domínio do Hosting (`diarias-app-cd76f.web.app`) e, depois, o domínio
 próprio, se você usar um.
 
+### 4. Ligar a limpeza automática da telemetria
+
+O registro detalhado de uso (`uso_lotes`) tem prazo de validade: cada documento
+já nasce com um campo `expiraEm`. Falta dizer ao Firestore para respeitá-lo,
+senão ele guarda para sempre e só cobra armazenamento à toa.
+
+Console do Firebase → **Firestore Database** → aba **TTL** → **Criar política**:
+
+- Grupo de coleções: `uso_lotes`
+- Campo de carimbo de data/hora: `expiraEm`
+
+Pronto. O Google apaga sozinho, de graça, depois de 90 dias. O resumo diário
+(`uso_diario`) é minúsculo e fica.
+
 ---
 
 ## Painel de administração
@@ -94,6 +108,13 @@ Aparece em **Ajustes → Administração**, só para a conta de administração.
 - **Indicações** — quem indicou quem, se o indicado já virou pagante, e o botão
   de liberar o prêmio. O botão só existe depois que o indicado paga: é isso que
   impede alguém abrir contas falsas para ganhar meses grátis.
+- **Uso** — como o app está sendo usado: o funil do cadastro até pagar alguém,
+  quais formulários as pessoas abrem e não terminam, quais telas elas abrem,
+  quais erros elas veem, e a lista de **quem ligar** (contas que usaram o app e
+  nunca chegaram a fechar um pagamento). Ao tocar numa conta travada, aparece a
+  sequência crua do que ela fez — é ali que "parou em cadastrar a feira" vira
+  "abriu escalar equipe três vezes e saiu nas três". Nenhum valor em dinheiro
+  aparece nesta aba; ver *Dados de uso* mais abaixo.
 - **Ferramentas** — o modo demonstração.
 
 ### Quem é admin
@@ -112,6 +133,50 @@ Serve para conferir todas as telas cheias e para demonstrar o app a um empreitei
 
 Todo registro criado tem id começando com `demo_`, e o botão **Limpar** apaga
 exatamente esses — nunca encosta em dado real.
+
+## Dados de uso (telemetria)
+
+O app mede a si mesmo, porque a aposta do produto é que um empreiteiro consegue
+usá-lo sozinho — e quem não consegue não escreve para reclamar, some.
+
+**O que é registrado:** quais telas ele abre, quais formulários ele começa e não
+termina (e em quanto tempo desiste), quais erros aparecem na tela dele, e os
+marcos do caminho — cadastrou equipe, cadastrou feira, escalou, fechou um
+pagamento.
+
+**O que nunca é registrado:** valor em dinheiro (nenhum), nome de pessoa, de
+empresa, de feira ou de contratante, chave PIX, CPF, telefone, foto, e qualquer
+texto digitado pelo usuário.
+
+Isso não é promessa de comentário: o tipo `Evento`, em `src/lib/telemetria.ts`,
+é uma união fechada em que cada campo é número, booleano ou string de lista
+fechada. **Não existe assinatura de evento em que caiba um valor ou um nome** —
+o TypeScript recusa antes de compilar. Foi a única forma de garantia que
+sobrevive a pressa e a mim mesmo daqui a seis meses.
+
+Onde isso aparece:
+
+| Arquivo | Papel |
+| --- | --- |
+| `src/lib/telemetria.ts` | o vocabulário fechado, o buffer e o envio |
+| `src/lib/uso.ts` | a leitura: funil, abandono, telas, erros |
+| `src/pages/AdminUso.tsx` | o painel (**Administração → Uso**) |
+
+Detalhes que importam:
+
+- **Offline primeiro.** Sem sinal, nada é enviado — o buffer fica no aparelho
+  (teto de 300 eventos) e sobe quando a internet volta. Telemetria nunca disputa
+  a fila de sincronização com a diária que ele acabou de lançar.
+- **Dois documentos por envio, não um por clique.** Um lote com a sequência
+  (`uso_lotes`, apagado em 90 dias) e um contador do dia por conta
+  (`uso_diario`, o que o painel lê).
+- **Só a administração lê.** As regras do Firestore não liberam essas coleções
+  para ninguém mais.
+- **O dono desliga quando quiser**, em Ajustes → *Ajudar a melhorar o app*. Está
+  na cláusula 7 dos termos, com a base legal (legítimo interesse, art. 7º IX da
+  LGPD) e a finalidade.
+- **As contas internas ficam de fora dos números** por padrão — quem mais clica
+  no app é quem menos representa o cliente.
 
 ## Como o dinheiro é tratado
 

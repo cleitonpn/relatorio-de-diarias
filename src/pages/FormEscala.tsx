@@ -10,6 +10,8 @@ import { cn } from '@/lib/cn'
 import { dataCurta, dataPorExtenso, isoParaData, moeda, nomeCurto } from '@/lib/format'
 import { diasDaFase, fasesDaFeira, periodoDaFase } from '@/lib/calc'
 import { FASES, type Diaria, type Fase, type Feira } from '@/types'
+import { useFluxo } from '@/hooks/useTelemetria'
+import { registrar } from '@/lib/telemetria'
 
 interface Props {
   empresaId: string
@@ -34,6 +36,8 @@ type Etapa = 'quem' | 'quando' | 'conflitos'
  * marcados, e "tudo marcado" não se lê como escolha, se lê como enfeite.
  */
 export function FormEscala({ empresaId, feira, jaEscaladas, standId, aoFechar }: Props) {
+  // Mede quem abre este formulário e sai sem terminar.
+  const concluir = useFluxo('escala')
   const toast = useToast()
   const { dados: equipe } = useColaboradores()
   const { dados: feiras } = useFeiras()
@@ -112,6 +116,10 @@ export function FormEscala({ empresaId, feira, jaEscaladas, standId, aoFechar }:
   function seguir() {
     if (aCriar.total === 0) return
     if (conflitos.length > 0) {
+      registrar({
+        nome: 'conflito_detectado',
+        pessoas: new Set(conflitos.map((d) => d.colaboradorId)).size,
+      })
       setEtapa('conflitos')
       return
     }
@@ -119,6 +127,9 @@ export function FormEscala({ empresaId, feira, jaEscaladas, standId, aoFechar }:
   }
 
   async function confirmar(decisao: 'transferir' | 'pular') {
+    if (conflitos.length > 0) {
+      registrar({ nome: 'conflito_resolvido', transferiu: decisao === 'transferir' })
+    }
     setOcupado(true)
     try {
       // "Pular" = não escalar a pessoa exatamente nos dias em que ela já está
@@ -161,6 +172,7 @@ export function FormEscala({ empresaId, feira, jaEscaladas, standId, aoFechar }:
       }
       const gravadas = await escalarEmLote(empresaId, lote)
       toast(`${gravadas} ${gravadas === 1 ? 'dia lançado' : 'dias lançados'}!`)
+      concluir()
       aoFechar()
     } catch {
       toast('Não deu para escalar. Tente de novo.', 'erro')

@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { apagarStand, salvarStand } from '@/lib/acoes'
 import { moeda } from '@/lib/format'
 import type { Stand, TipoCobranca } from '@/types'
+import { useFluxo } from '@/hooks/useTelemetria'
 
 interface Props {
   empresaId: string
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export function FormStand({ empresaId, feiraId, stand, aoFechar }: Props) {
+  // Mede quem abre este formulário e sai sem terminar.
+  const concluir = useFluxo('novo_stand')
   const toast = useToast()
   const { empresa } = useAuth()
   const novo = !stand
@@ -79,6 +82,7 @@ export function FormStand({ empresaId, feiraId, stand, aoFechar }: Props) {
         stand?.id,
       )
       toast(novo ? 'Stand cadastrado!' : 'Stand atualizado!')
+      concluir()
       if (continuar) {
         limpar()
         setOcupado(false)

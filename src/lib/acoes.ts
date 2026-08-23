@@ -11,7 +11,10 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { db } from './firebase'
+import { registrar } from './telemetria'
+import { diasEntre } from './format'
 import {
+  docEmpresa,
   colColaboradores,
   colContratantes,
   colCustos,
@@ -55,6 +58,7 @@ export async function salvarColaborador(
     empresaId,
     criadoEm: agora(),
   } as never)
+  registrar({ nome: 'colaborador_criado' })
   return ref.id
 }
 
@@ -92,6 +96,12 @@ export async function salvarFeira(empresaId: string, dados: SemMeta<Feira>, id?:
     empresaId,
     criadaEm: agora(),
   } as never)
+  registrar({
+    nome: 'feira_criada',
+    pacote: dados.modo === 'PACOTE',
+    temCalendario: !!dados.fases,
+    dias: diasEntre(dados.dataInicio, dados.dataFim).length,
+  })
   return ref.id
 }
 
@@ -111,6 +121,10 @@ export async function salvarStand(empresaId: string, dados: SemMeta<Stand>, id?:
     empresaId,
     criadoEm: agora(),
   } as never)
+  registrar({
+    nome: 'stand_criado',
+    precificacao: dados.tipoCobranca === 'POR_M2' ? 'M2' : 'FECHADO',
+  })
   return ref.id
 }
 
@@ -145,6 +159,7 @@ export async function marcarPresenca(
   presenca: Diaria['presenca'],
 ) {
   await updateDoc(doc(colDiarias(empresaId), diariaId), { presenca })
+  registrar({ nome: 'presenca_marcada', presenca })
 }
 
 export async function definirMultiplicador(
@@ -175,6 +190,12 @@ export async function escalarEmLote(
     await batch.commit()
     gravadas += fatia.length
   }
+  registrar({
+    nome: 'escala_criada',
+    pessoas: new Set(lote.map((d) => d.colaboradorId)).size,
+    dias: new Set(lote.map((d) => d.data)).size,
+    diarias: gravadas,
+  })
   return gravadas
 }
 
@@ -190,6 +211,7 @@ export async function salvarCusto(empresaId: string, dados: SemMeta<Custo>, id?:
     empresaId,
     criadoEm: agora(),
   } as never)
+  registrar({ nome: 'custo_lancado', categoria: dados.categoria })
   return ref.id
 }
 
@@ -205,6 +227,7 @@ export async function criarVale(empresaId: string, dados: SemMeta<Vale>) {
     empresaId,
     criadoEm: agora(),
   } as never)
+  registrar({ nome: 'vale_pedido', porColaborador: dados.origemPedido === 'COLABORADOR' })
   return ref.id
 }
 
@@ -214,6 +237,7 @@ export async function responderVale(
   status: Extract<Vale['status'], 'APROVADO' | 'NEGADO'>,
 ) {
   await updateDoc(doc(colVales(empresaId), id), { status })
+  registrar({ nome: 'vale_respondido', aprovado: status === 'APROVADO' })
 }
 
 export async function apagarVale(empresaId: string, id: string) {
@@ -249,6 +273,11 @@ export async function fecharPagamento(
   }
 
   await batch.commit()
+  registrar({
+    nome: 'pagamento_fechado',
+    diarias: dados.diariaIds.length,
+    comVale: dados.valeIds.length > 0,
+  })
   return pagamentoRef.id
 }
 
@@ -320,6 +349,7 @@ export async function apagarFeira(empresaId: string, feiraId: string): Promise<v
     await batch.commit()
   }
   await deleteDoc(doc(colFeiras(empresaId), feiraId))
+  registrar({ nome: 'feira_apagada' })
 }
 
 /* -------------------------------- Convites -------------------------------- */
@@ -355,11 +385,23 @@ export async function criarConvite(dados: {
     usadoPor: null,
     criadoEm: agora(),
   } as never)
+  registrar({ nome: 'convite_criado', papel: dados.papel })
   return codigo
 }
 
 export async function apagarConvite(codigo: string) {
   await deleteDoc(doc(db, 'convites', codigo))
+}
+
+/**
+ * O dono liga ou desliga a coleta de dados de uso.
+ *
+ * Fica escondido em lugar nenhum: aparece nos Ajustes, junto do texto que diz
+ * o que é coletado. Pedir permissão para medir e não dar como recusar é pedir
+ * permissão da boca para fora.
+ */
+export async function definirTelemetria(empresaId: string, permite: boolean) {
+  await updateDoc(docEmpresa(empresaId), { permiteTelemetria: permite })
 }
 
 /** O dono liga ou desliga o painel financeiro de um encarregado. */
@@ -443,6 +485,7 @@ export async function registrarRecebimento(
   }
 
   await lote.commit()
+  registrar({ nome: 'recebimento_registrado', integral })
   return { resto }
 }
 

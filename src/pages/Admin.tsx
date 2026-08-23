@@ -19,6 +19,7 @@ import { calcularMetricas, listarContas, type Metricas, type ResumoConta } from 
 import { FichaConta } from './AdminFichaConta'
 import { PainelDemo } from './AdminDemo'
 import { PainelIndicacoes } from './AdminIndicacoes'
+import { PainelUso } from './AdminUso'
 import type { StatusAssinatura } from '@/types'
 
 const ROTULO_STATUS: Record<StatusAssinatura, { texto: string; cor: string }> = {
@@ -37,7 +38,7 @@ export function Admin() {
   const [carregando, setCarregando] = useState(true)
   const [busca, setBusca] = useState('')
   const [aberta, setAberta] = useState<ResumoConta | null>(null)
-  const [aba, setAba] = useState<'contas' | 'indicacoes' | 'ferramentas'>('contas')
+  const [aba, setAba] = useState<'contas' | 'uso' | 'indicacoes' | 'ferramentas'>('contas')
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -99,6 +100,7 @@ export function Admin() {
         <div className="max-w-2xl lg:max-w-3xl mx-auto px-4 flex gap-1">
           {([
             ['contas', 'Contas'],
+            ['uso', 'Uso'],
             ['indicacoes', 'Indicações'],
             ['ferramentas', 'Ferramentas'],
           ] as const).map(([id, rotulo]) => (
@@ -106,7 +108,7 @@ export function Admin() {
               key={id}
               onClick={() => setAba(id)}
               className={cn(
-                'relative flex-1 h-12 text-[14.5px] font-semibold transition',
+                'relative flex-1 h-12 text-[13.5px] sm:text-[14.5px] font-semibold transition',
                 aba === id ? 'text-brand' : 'text-muted',
               )}
             >
@@ -155,6 +157,8 @@ export function Admin() {
             )}
           </>
         )}
+
+        {aba === 'uso' && <PainelUso contas={contas} />}
 
         {aba === 'indicacoes' && <PainelIndicacoes contas={contas} aoMudar={carregar} />}
 

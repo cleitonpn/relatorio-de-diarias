@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Calculator, Send, Tag, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
@@ -14,6 +14,7 @@ import {
   TEXTO_SAUDE,
 } from '@/lib/calc'
 import { moeda, percentual } from '@/lib/format'
+import { registrar } from '@/lib/telemetria'
 
 /**
  * "Vale a pena?"
@@ -79,6 +80,23 @@ export function ValeAPena() {
 
   const texto = TEXTO_SAUDE[veredito.saude]
   const precisaContraproposta = veredito.margem < MARGEM_ALVO
+
+  // Registra o veredito, não a digitação: espera ele parar de mexer nos campos.
+  // Saber se a calculadora costuma dizer "apertado" ou "está bom" diz quanto o
+  // mercado está pagando — e é a única leitura de mercado que este app tem.
+  useEffect(() => {
+    if (!preencheu) return
+    const espera = setTimeout(
+      () =>
+        registrar({
+          nome: 'calculadora_usada',
+          veredito: veredito.saude,
+          temPrecoM2: referencia !== null,
+        }),
+      2500,
+    )
+    return () => clearTimeout(espera)
+  }, [preencheu, veredito.saude, referencia])
 
   async function mandarContraproposta() {
     const linhas = [

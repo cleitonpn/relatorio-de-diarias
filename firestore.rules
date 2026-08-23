@@ -247,6 +247,49 @@ service cloud.firestore {
       }
     }
 
+    /* ------------------------------- Telemetria ------------------------------- *
+     *  Dados de USO — nunca dados do negócio.
+     *
+     *  O que entra aqui é contagem de tela, fluxo abandonado e código de erro.
+     *  Não existe valor, nome nem chave PIX: o formato é fechado pelo tipo
+     *  `Evento` em `lib/telemetria.ts`, e é isso que dá para verificar lendo
+     *  aquele arquivo — regra de banco não sabe ler intenção.
+     *
+     *  Só a administração da plataforma lê. Nem o próprio inquilino tem
+     *  interesse nisso, e liberar leitura só aumentaria a superfície.
+     * -------------------------------------------------------------------- */
+
+    /** A sequência de eventos de uma sessão. Some sozinha pela política de TTL. */
+    match /uso_lotes/{loteId} {
+      allow read: if ehAdmin();
+
+      allow create: if autenticado()
+        && request.resource.data.uid == request.auth.uid
+        && pertenceA(request.resource.data.empresaId)
+        // Teto de tamanho: telemetria nunca pode virar um canal de upload.
+        && request.resource.data.eventos.size() <= 300;
+
+      // Registro de uso não se corrige nem se reescreve.
+      allow update: if false;
+      allow delete: if ehAdmin();
+    }
+
+    /** Uma linha por conta por dia. É o que o painel lê. */
+    match /uso_diario/{id} {
+      allow read: if ehAdmin();
+
+      allow create: if autenticado()
+        && pertenceA(request.resource.data.empresaId);
+
+      // Só o próprio inquilino soma nos próprios contadores — ninguém escreve
+      // por cima da linha de outra conta.
+      allow update: if autenticado()
+        && pertenceA(resource.data.empresaId)
+        && request.resource.data.empresaId == resource.data.empresaId;
+
+      allow delete: if ehAdmin();
+    }
+
     // Nada fora do que está declarado acima.
     match /{document=**} {
       allow read, write: if false;

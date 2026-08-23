@@ -22,9 +22,21 @@ import { ValeAPena } from '@/pages/ValeAPena'
 import { AdminSemConta } from '@/pages/AdminSemConta'
 import { useVales } from '@/hooks/useDados'
 import { usePapel } from '@/contexts/AuthContext'
+import { useTelemetria } from '@/hooks/useTelemetria'
 
 export function App() {
   const { carregando, usuarioAuth, perfil, precisaOnboarding, ehAdmin } = useAuth()
+
+  // O app mede o próprio uso: quais telas ele abre, o que ele começa e não
+  // termina, onde dá erro. Nunca valores nem nomes — ver `lib/telemetria.ts`.
+  // O funcionário tem app próprio, sem rotas: a tela dele é dita na mão.
+  useTelemetria(
+    perfil?.papel === 'COLABORADOR'
+      ? 'minha-conta'
+      : precisaOnboarding
+        ? 'onboarding'
+        : undefined,
+  )
 
   // O convite é público: quem recebe o link ainda não tem conta nem perfil.
   if (window.location.pathname.startsWith('/convite/')) {

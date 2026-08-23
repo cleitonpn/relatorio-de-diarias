@@ -4,40 +4,84 @@
       "collectionGroup": "diarias",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "feiraId", "order": "ASCENDING" },
-        { "fieldPath": "data", "order": "ASCENDING" }
+        {
+          "fieldPath": "feiraId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "data",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "diarias",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "colaboradorId", "order": "ASCENDING" },
-        { "fieldPath": "data", "order": "DESCENDING" }
+        {
+          "fieldPath": "colaboradorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "data",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "custos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "feiraId", "order": "ASCENDING" },
-        { "fieldPath": "data", "order": "DESCENDING" }
+        {
+          "fieldPath": "feiraId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "data",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "vales",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "criadoEm",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "feiras",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "encerrada", "order": "ASCENDING" },
-        { "fieldPath": "dataInicio", "order": "DESCENDING" }
+        {
+          "fieldPath": "encerrada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataInicio",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "uso_lotes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "empresaId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "criadoEm",
+          "order": "DESCENDING"
+        }
       ]
     }
   ],

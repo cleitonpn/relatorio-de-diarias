@@ -10,7 +10,7 @@
 import { MARCA } from './marca'
 
 /** Toda mudança relevante sobe a versão e pede aceite de novo. */
-export const VERSAO_TERMOS = '2026-08-1'
+export const VERSAO_TERMOS = '2026-08-2'
 
 export interface Secao {
   titulo: string
@@ -67,7 +67,16 @@ export const TERMOS: Secao[] = [
     ],
   },
   {
-    titulo: '7. Limites de responsabilidade',
+    titulo: '7. Dados de uso do aplicativo',
+    paragrafos: [
+      `Para saber onde o aplicativo está difícil de usar, o ${MARCA.nome} registra o caminho que você faz dentro dele: quais telas você abre, quais cadastros você começa e não termina, quanto tempo leva cada etapa e quais erros aparecem na sua tela.`,
+      `Esse registro NÃO inclui valores em dinheiro, nomes de pessoas, de feiras ou de contratantes, chave PIX, CPF, telefone, foto, nem qualquer texto que você digite. O que é enviado é contagem: "cadastrou uma feira de 3 dias", nunca "cadastrou a feira X por R$ 3.000".`,
+      `A base legal para esse tratamento é o legítimo interesse (art. 7º, IX, da Lei 13.709/2018), e a finalidade é uma só: corrigir e melhorar o próprio aplicativo. Esses dados não são vendidos nem compartilhados com terceiros, e o registro detalhado é apagado automaticamente após 90 dias.`,
+      'Você pode desligar essa coleta quando quiser, em Ajustes → Ajudar a melhorar o aplicativo. Desligar não muda nada no funcionamento do aplicativo nem no seu plano.',
+    ],
+  },
+  {
+    titulo: '8. Limites de responsabilidade',
     paragrafos: [
       `Os cálculos do ${MARCA.nome} dependem do que você lança. Valores errados na entrada geram resultados errados na saída. Confira os números antes de pagar alguém ou fechar um contrato.`,
       `O ${MARCA.nome} não confirma se um PIX foi pago — quem confirma é você, no seu banco. O aplicativo apenas registra o que você marcou como pago.`,
@@ -76,21 +85,21 @@ export const TERMOS: Secao[] = [
     ],
   },
   {
-    titulo: '8. Uso correto',
+    titulo: '9. Uso correto',
     paragrafos: [
       `Não é permitido usar o ${MARCA.nome} para atividade ilícita, cadastrar dados de pessoas sem autorização delas, tentar acessar contas de terceiros ou prejudicar o funcionamento do serviço.`,
       'O descumprimento pode levar à suspensão da conta.',
     ],
   },
   {
-    titulo: '9. Mudanças nestes termos',
+    titulo: '10. Mudanças nestes termos',
     paragrafos: [
       'Estes termos podem ser atualizados. Mudanças relevantes serão avisadas dentro do aplicativo, e o uso continuado após o aviso significa concordância.',
       'A versão vigente fica sempre disponível dentro do aplicativo.',
     ],
   },
   {
-    titulo: '10. Foro e contato',
+    titulo: '11. Foro e contato',
     paragrafos: [
       'Aplica-se a legislação brasileira. Fica eleito o foro do domicílio do consumidor para resolver eventuais conflitos.',
       'Dúvidas, pedidos de exclusão de dados ou exercício de direitos previstos na LGPD podem ser encaminhados ao suporte dentro do aplicativo.',
