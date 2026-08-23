@@ -7,6 +7,7 @@ import {
   colDiarias,
   colFeiras,
   colStands,
+  colRecebimentos,
   colVales,
 } from './db'
 import { dataParaISO, hojeISO, somarDias } from './format'
@@ -257,7 +258,43 @@ export async function criarDadosDemo(empresaId: string): Promise<ResultadoDemo> 
   } as never)
   criados++
 
-  await loteCustos.commit()
+  // Recebimentos: uma entrada já paga, uma parcela vencida e uma futura —
+  // os três estados que a tela precisa mostrar.
+  const loteReceber = writeBatch(db)
+  const parcelas = [
+    {
+      id: 'entrada', descricao: 'Entrada (50%)', valor: 450000,
+      data: somarDias(hoje, -9), status: 'RECEBIDO', recebido: 450000,
+      dataRecebimento: somarDias(hoje, -9),
+    },
+    {
+      id: 'atrasada', descricao: 'Parcela 2', valor: 200000,
+      data: somarDias(hoje, -3), status: 'PREVISTO', recebido: 0, dataRecebimento: null,
+    },
+    {
+      id: 'saldo', descricao: 'Saldo (50%)', valor: 250000,
+      data: somarDias(hoje, 20), status: 'PREVISTO', recebido: 0, dataRecebimento: null,
+    },
+  ]
+  for (const p of parcelas) {
+    loteReceber.set(doc(colRecebimentos(empresaId), `${PREFIXO}receb_${p.id}`), {
+      empresaId,
+      feiraId,
+      feiraNome: 'Expo Construção 2026',
+      contratanteNome: 'Montadora Central Eventos',
+      descricao: p.descricao,
+      valorPrevisto: p.valor,
+      dataPrevista: p.data,
+      status: p.status,
+      valorRecebido: p.recebido,
+      dataRecebimento: p.dataRecebimento,
+      observacao: null,
+      origemParcial: null,
+      criadoEm: serverTimestamp(),
+    } as never)
+    criados++
+  }
+  await loteReceber.commit()
 
   return { criados }
 }
@@ -272,6 +309,7 @@ export async function limparDadosDemo(empresaId: string): Promise<number> {
     'diarias',
     'custos',
     'vales',
+    'recebimentos',
   ]
 
   let apagados = 0

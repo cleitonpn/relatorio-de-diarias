@@ -13,6 +13,7 @@ import type {
   Empresa,
   Feira,
   Pagamento,
+  Recebimento,
   Stand,
   Usuario,
   Vale,
@@ -42,3 +43,4 @@ export const colDiarias = (e: string) => sub<Diaria>(e, 'diarias')
 export const colCustos = (e: string) => sub<Custo>(e, 'custos')
 export const colVales = (e: string) => sub<Vale>(e, 'vales')
 export const colPagamentos = (e: string) => sub<Pagamento>(e, 'pagamentos')
+export const colRecebimentos = (e: string) => sub<Recebimento>(e, 'recebimentos')

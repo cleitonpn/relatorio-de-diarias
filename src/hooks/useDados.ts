@@ -8,11 +8,22 @@ import {
   colDiarias,
   colFeiras,
   colPagamentos,
+  colRecebimentos,
   colStands,
   colVales,
 } from '@/lib/db'
 import { useColecao } from './useColecao'
-import type { Colaborador, Contratante, Custo, Diaria, Feira, Pagamento, Stand, Vale } from '@/types'
+import type {
+  Colaborador,
+  Contratante,
+  Custo,
+  Diaria,
+  Feira,
+  Pagamento,
+  Recebimento,
+  Stand,
+  Vale,
+} from '@/types'
 
 function useEmpresaIdOpcional(): string | null {
   const { perfil } = useAuth()
@@ -167,5 +178,19 @@ export function useMeusVales(colaboradorId: string | null) {
     empresaId && colaboradorId ? colVales(empresaId) : null,
     colaboradorId ? [where('colaboradorId', '==', colaboradorId)] : [],
     [empresaId, colaboradorId],
+  )
+}
+
+export function useRecebimentos() {
+  const empresaId = useEmpresaIdOpcional()
+  return useColecao<Recebimento>(empresaId ? colRecebimentos(empresaId) : null, [], [empresaId])
+}
+
+export function useRecebimentosDaFeira(feiraId: string | null) {
+  const empresaId = useEmpresaIdOpcional()
+  return useColecao<Recebimento>(
+    empresaId && feiraId ? colRecebimentos(empresaId) : null,
+    feiraId ? [where('feiraId', '==', feiraId)] : [],
+    [empresaId, feiraId],
   )
 }

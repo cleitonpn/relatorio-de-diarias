@@ -1,4 +1,17 @@
-import { FASES, type Centavos, type Custo, type DataISO, type Diaria, type Fase, type Feira, type Resultado, type Stand } from '@/types'
+import {
+  CATEGORIAS_CUSTO,
+  FASES,
+  type Centavos,
+  type Custo,
+  type DataISO,
+  type Diaria,
+  type Fase,
+  type Feira,
+  type Pagamento,
+  type Recebimento,
+  type Resultado,
+  type Stand,
+} from '@/types'
 import { dataCurta, diasEntre, isoParaData, periodo as periodo_, somarDias } from './format'
 
 /** Quanto uma diária custa de fato (valor congelado × multiplicador). */
@@ -410,4 +423,162 @@ export function precoHabitualPorM2(feiras: Feira[], standsPorFeira: Record<strin
     metros += m2
   }
   return metros > 0 ? Math.round(receita / metros) : null
+}
+
+/* ------------------------------ Agenda do caixa ------------------------------ */
+
+export type TipoMovimento = 'ENTRADA' | 'SAIDA'
+
+export interface Movimento {
+  id: string
+  tipo: TipoMovimento
+  data: DataISO
+  titulo: string
+  detalhe: string
+  valor: Centavos
+  /** Já aconteceu (recebido/pago) ou ainda é previsão. */
+  realizado: boolean
+  /** Venceu e não aconteceu. */
+  atrasado: boolean
+  feiraId: string | null
+  refId: string
+}
+
+/**
+ * A linha do tempo do dinheiro: o que entra, o que sai, e quando.
+ *
+ * O empreiteiro sabe quanto tem a pagar, mas não sabia quando cada coisa cai.
+ * É a diferença entre "tenho R$ 8.000 a pagar" e "tenho R$ 8.000 a pagar na
+ * sexta e só recebo na terça seguinte" — a segunda frase é a que evita aperto.
+ */
+export function montarAgenda(entrada: {
+  recebimentos: Recebimento[]
+  pagamentos: Pagamento[]
+  /** Diárias trabalhadas ainda sem acerto, agrupadas pela data prevista. */
+  diariasAbertas: Diaria[]
+  /** Combustível, material, estacionamento: dinheiro que já saiu do bolso. */
+  custos: Custo[]
+  feiras: Feira[]
+  hoje: DataISO
+}): Movimento[] {
+  const { recebimentos, pagamentos, diariasAbertas, custos, feiras, hoje } = entrada
+  const movimentos: Movimento[] = []
+  const feiraPorId = new Map(feiras.map((f) => [f.id, f]))
+
+  for (const r of recebimentos) {
+    const realizado = r.status === 'RECEBIDO'
+    movimentos.push({
+      id: `r_${r.id}`,
+      tipo: 'ENTRADA',
+      data: realizado ? (r.dataRecebimento ?? r.dataPrevista) : r.dataPrevista,
+      titulo: r.feiraNome,
+      detalhe: r.contratanteNome ? `${r.descricao} · ${r.contratanteNome}` : r.descricao,
+      valor: realizado ? r.valorRecebido : r.valorPrevisto,
+      realizado,
+      atrasado: !realizado && r.dataPrevista < hoje,
+      feiraId: r.feiraId,
+      refId: r.id,
+    })
+  }
+
+  for (const p of pagamentos) {
+    const realizado = p.status === 'PAGO'
+    movimentos.push({
+      id: `p_${p.id}`,
+      tipo: 'SAIDA',
+      data: p.dataPagamento ?? p.dataPrevista ?? hoje,
+      titulo: p.colaboradorNome,
+      detalhe: p.feiraNome ? `Acerto · ${p.feiraNome}` : 'Acerto',
+      valor: p.valorLiquido,
+      realizado,
+      atrasado: !realizado && (p.dataPrevista ?? hoje) < hoje,
+      feiraId: p.feiraId,
+      refId: p.id,
+    })
+  }
+
+  // Gasto lançado é dinheiro que já saiu — entra no caixa como realizado.
+  for (const c of custos) {
+    const categoria = CATEGORIAS_CUSTO.find((x) => x.valor === c.categoria)
+    movimentos.push({
+      id: `c_${c.id}`,
+      tipo: 'SAIDA',
+      data: c.data,
+      titulo: categoria?.rotulo ?? 'Gasto',
+      detalhe: c.descricao ?? feiraPorId.get(c.feiraId)?.nome ?? 'Gasto da feira',
+      valor: c.valor,
+      realizado: true,
+      atrasado: false,
+      feiraId: c.feiraId,
+      refId: c.id,
+    })
+  }
+
+  // Diárias trabalhadas e ainda não pagas viram uma saída prevista, agrupada
+  // pela data em que o acerto daquela feira deve acontecer.
+  const previstos = new Map<string, { valor: Centavos; pessoas: Set<string>; feiraId: string }>()
+  for (const d of diariasAbertas) {
+    if (d.presenca !== 'PRESENTE' || d.pagamentoId) continue
+    const feira = feiraPorId.get(d.feiraId)
+    if (!feira) continue
+    const data = dataPrevistaPagamento(feira, d.data) ?? feira.dataFim
+    const chave = `${d.feiraId}|${data}`
+    const atual = previstos.get(chave) ?? { valor: 0, pessoas: new Set<string>(), feiraId: d.feiraId }
+    atual.valor += valorDaDiaria(d)
+    atual.pessoas.add(d.colaboradorId)
+    previstos.set(chave, atual)
+  }
+
+  for (const [chave, dados] of previstos) {
+    const [feiraId, data] = chave.split('|')
+    const feira = feiraPorId.get(feiraId)
+    movimentos.push({
+      id: `d_${chave}`,
+      tipo: 'SAIDA',
+      data,
+      titulo: `Acerto da equipe`,
+      detalhe: `${dados.pessoas.size} ${dados.pessoas.size === 1 ? 'pessoa' : 'pessoas'} · ${feira?.nome ?? 'feira'}`,
+      valor: dados.valor,
+      realizado: false,
+      atrasado: data < hoje,
+      feiraId,
+      refId: chave,
+    })
+  }
+
+  return movimentos.sort((a, b) => a.data.localeCompare(b.data))
+}
+
+export interface ResumoCaixa {
+  entrou: Centavos
+  saiu: Centavos
+  saldo: Centavos
+  aReceber: Centavos
+  aPagar: Centavos
+  atrasadoReceber: Centavos
+  /** Onde o caixa fica depois de tudo que está previsto acontecer. */
+  projecao: Centavos
+}
+
+export function resumirCaixa(movimentos: Movimento[]): ResumoCaixa {
+  let entrou = 0
+  let saiu = 0
+  let aReceber = 0
+  let aPagar = 0
+  let atrasadoReceber = 0
+
+  for (const m of movimentos) {
+    if (m.realizado) {
+      if (m.tipo === 'ENTRADA') entrou += m.valor
+      else saiu += m.valor
+    } else {
+      if (m.tipo === 'ENTRADA') {
+        aReceber += m.valor
+        if (m.atrasado) atrasadoReceber += m.valor
+      } else aPagar += m.valor
+    }
+  }
+
+  const saldo = entrou - saiu
+  return { entrou, saiu, saldo, aReceber, aPagar, atrasadoReceber, projecao: saldo + aReceber - aPagar }
 }

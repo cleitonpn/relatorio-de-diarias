@@ -233,6 +233,13 @@ service cloud.firestore {
         allow update: if ehAdmin() || (podeEscrever(empresaId) && ehGestor(empresaId));
       }
 
+      // O que a contratante deve a ele: dado financeiro, fora do alcance
+      // de quem não tem o painel liberado.
+      match /recebimentos/{id} {
+        allow read: if ehAdmin() || ehGestor(empresaId);
+        allow write: if ehAdmin() || (podeEscrever(empresaId) && ehGestor(empresaId));
+      }
+
       match /pagamentos/{id} {
         allow read: if ehAdmin() || ehGestor(empresaId)
           || (ehColaborador(empresaId) && resource.data.colaboradorId == minhaFicha());

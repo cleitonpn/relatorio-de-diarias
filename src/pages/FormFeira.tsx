@@ -6,13 +6,16 @@ import { Campo, CampoDinheiro, Selecao } from '@/components/ui/Campo'
 import { useToast } from '@/components/app/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useContratantes } from '@/hooks/useDados'
-import { apagarFeira, criarContratante, salvarFeira } from '@/lib/acoes'
+import { apagarFeira, criarContratante, criarRecebimentosDaFeira, salvarFeira } from '@/lib/acoes'
 import { dataCurta, hojeISO, somarDias } from '@/lib/format'
 import { BlocoFase } from './BlocoFase'
+import { BlocoRecebimentos } from './BlocoRecebimentos'
 import {
   FASES,
   POLITICAS,
   type CalendarioFases,
+  type ModeloRecebimento,
+  type ParcelaPlanejada,
   type Fase,
   type Feira,
   type ModoFeira,
@@ -65,6 +68,11 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
     feira?.politicaPagamento ?? 'FIM_FEIRA',
   )
   const [almoco, setAlmoco] = useState(feira?.almocoPorPessoaDia ?? empresa?.almocoPadrao ?? 2500)
+  const [dataPagamentoFixa, setDataPagamentoFixa] = useState(
+    feira?.dataPagamentoFixa ?? somarDias(hojeISO(), 7),
+  )
+  const [modeloRecebimento, setModeloRecebimento] = useState<ModeloRecebimento>('TUDO_FIM')
+  const [parcelas, setParcelas] = useState<ParcelaPlanejada[]>([])
   const [ocupado, setOcupado] = useState(false)
   const [apagando, setApagando] = useState(false)
   const [erros, setErros] = useState<Record<string, string>>({})
@@ -115,6 +123,7 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
       }
     }
     if (modo === 'PACOTE' && pacoteValor <= 0) e.pacoteValor = 'Quanto você vai receber pelo pacote?'
+    if (politica === 'DATA_FIXA' && !dataPagamentoFixa) e.dataPagamento = 'Escolha o dia do acerto'
     setErros(e)
     return Object.keys(e).length === 0
   }
@@ -148,7 +157,7 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
           pacoteM2: modo === 'PACOTE' ? Number(pacoteM2) || null : null,
           pacoteQtdStands: modo === 'PACOTE' ? Number(pacoteStands) || null : null,
           politicaPagamento: politica,
-          dataPagamentoFixa: feira?.dataPagamentoFixa ?? null,
+          dataPagamentoFixa: politica === 'DATA_FIXA' ? dataPagamentoFixa : null,
           almocoPorPessoaDia: almoco,
           encerrada: feira?.encerrada ?? false,
           origem: feira?.origem ?? {
@@ -160,6 +169,14 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
         },
         feira?.id,
       )
+      if (novo && parcelas.length > 0) {
+        await criarRecebimentosDaFeira(
+          empresaId,
+          { id: feiraId, nome: nome.trim(), contratanteNome: nomeContratante || null },
+          parcelas.filter((p) => p.valor > 0),
+        )
+      }
+
       toast(novo ? 'Feira cadastrada!' : 'Feira atualizada!')
       aoFechar()
       // Cadastrar a feira sozinha não serve de nada: o próximo passo é o que
@@ -324,6 +341,18 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
           </div>
         )}
 
+        {novo && (
+          <BlocoRecebimentos
+            modelo={modeloRecebimento}
+            aoMudarModelo={setModeloRecebimento}
+            parcelas={parcelas}
+            aoMudarParcelas={setParcelas}
+            total={modo === 'PACOTE' ? pacoteValor : 0}
+            inicioMontagem={fases.MONTAGEM?.inicio ?? null}
+            fimFeira={intervalo?.fim ?? dataPagamentoFixa}
+          />
+        )}
+
         <Selecao<PoliticaPagamento>
           rotulo="Quando você paga a equipe"
           opcoes={POLITICAS.map((p) => ({
@@ -335,6 +364,17 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
           onChange={setPolitica}
           colunas={1}
         />
+
+        {politica === 'DATA_FIXA' && (
+          <Campo
+            rotulo="Dia do acerto com a equipe"
+            type="date"
+            value={dataPagamentoFixa}
+            onChange={(e) => setDataPagamentoFixa(e.target.value)}
+            erro={erros.dataPagamento}
+            dica="É a data que o funcionário vê como previsão de pagamento"
+          />
+        )}
 
         <CampoDinheiro
           rotulo="Almoço por pessoa, por dia"

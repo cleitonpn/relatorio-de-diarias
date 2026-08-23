@@ -18,10 +18,22 @@ import {
   colDiarias,
   colFeiras,
   colPagamentos,
+  colRecebimentos,
   colStands,
   colVales,
 } from './db'
-import type { Colaborador, Custo, Diaria, Feira, Pagamento, Stand, Vale } from '@/types'
+import type {
+  Centavos,
+  Colaborador,
+  Custo,
+  Diaria,
+  Feira,
+  Pagamento,
+  ParcelaPlanejada,
+  Recebimento,
+  Stand,
+  Vale,
+} from '@/types'
 
 type SemMeta<T> = Omit<T, 'id' | 'empresaId' | 'criadoEm' | 'criadaEm'>
 
@@ -357,4 +369,107 @@ export async function definirAcessoFinanceiro(uid: string, libera: boolean) {
 
 export async function desativarUsuario(uid: string, ativo: boolean) {
   await updateDoc(doc(db, 'usuarios', uid), { ativo })
+}
+
+/* ------------------------------ Recebimentos ------------------------------ */
+
+export async function salvarRecebimento(
+  empresaId: string,
+  dados: SemMeta<Recebimento>,
+  id?: string,
+) {
+  if (id) {
+    await updateDoc(doc(colRecebimentos(empresaId), id), dados as never)
+    return id
+  }
+  const ref = await addDoc(colRecebimentos(empresaId), {
+    ...dados,
+    empresaId,
+    criadoEm: agora(),
+  } as never)
+  return ref.id
+}
+
+export async function apagarRecebimento(empresaId: string, id: string) {
+  await deleteDoc(doc(colRecebimentos(empresaId), id))
+}
+
+/**
+ * Registra o que caiu na conta.
+ *
+ * Quando vem menos do que o combinado — e vem, o financeiro liga e renegocia —
+ * o saldo não some: vira automaticamente uma nova parcela com a data que ele
+ * acertou. Sem isso, dinheiro a receber sumiria do controle exatamente no caso
+ * em que ele mais precisa lembrar.
+ */
+export async function registrarRecebimento(
+  empresaId: string,
+  parcela: Recebimento,
+  dados: {
+    valorRecebido: Centavos
+    data: string
+    /** Quando fica saldo, a data prometida para o resto. */
+    dataDoResto?: string | null
+    observacao?: string | null
+  },
+): Promise<{ resto: Centavos }> {
+  const resto = Math.max(0, parcela.valorPrevisto - dados.valorRecebido)
+  const integral = resto === 0
+
+  const lote = writeBatch(db)
+  lote.update(doc(colRecebimentos(empresaId), parcela.id), {
+    status: integral ? 'RECEBIDO' : 'PARCIAL',
+    valorRecebido: dados.valorRecebido,
+    dataRecebimento: dados.data,
+    observacao: dados.observacao ?? parcela.observacao ?? null,
+  })
+
+  if (resto > 0) {
+    lote.set(doc(colRecebimentos(empresaId)), {
+      empresaId,
+      feiraId: parcela.feiraId,
+      feiraNome: parcela.feiraNome,
+      contratanteNome: parcela.contratanteNome,
+      descricao: `Saldo de ${parcela.descricao}`,
+      valorPrevisto: resto,
+      dataPrevista: dados.dataDoResto || dados.data,
+      status: 'PREVISTO',
+      valorRecebido: 0,
+      dataRecebimento: null,
+      observacao: dados.observacao ?? null,
+      origemParcial: parcela.id,
+      criadoEm: agora(),
+    } as never)
+  }
+
+  await lote.commit()
+  return { resto }
+}
+
+/** Cria de uma vez as parcelas planejadas no cadastro da feira. */
+export async function criarRecebimentosDaFeira(
+  empresaId: string,
+  feira: { id: string; nome: string; contratanteNome: string | null },
+  parcelas: ParcelaPlanejada[],
+) {
+  if (parcelas.length === 0) return
+  const lote = writeBatch(db)
+  for (const p of parcelas) {
+    lote.set(doc(colRecebimentos(empresaId)), {
+      empresaId,
+      feiraId: feira.id,
+      feiraNome: feira.nome,
+      contratanteNome: feira.contratanteNome,
+      descricao: p.descricao,
+      valorPrevisto: p.valor,
+      dataPrevista: p.data,
+      status: 'PREVISTO',
+      valorRecebido: 0,
+      dataRecebimento: null,
+      observacao: null,
+      origemParcial: null,
+      criadoEm: agora(),
+    } as never)
+  }
+  await lote.commit()
 }

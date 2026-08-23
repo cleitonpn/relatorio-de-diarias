@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { orderBy } from 'firebase/firestore'
-import { HandCoins, History, Wallet } from 'lucide-react'
+import { HandCoins, Wallet } from 'lucide-react'
+import { Agenda } from './Agenda'
+import { AReceber } from './AReceber'
 import { useAuth } from '@/contexts/AuthContext'
 import { useColaboradores, useFeiras, usePagamentos, useVales } from '@/hooks/useDados'
 import { useColecao, useIndice } from '@/hooks/useColecao'
@@ -17,24 +19,25 @@ import { SheetPix } from './SheetPix'
 import { PainelVales } from './PainelVales'
 import type { Diaria } from '@/types'
 
-type Aba = 'pagar' | 'vales' | 'historico'
+type Aba = 'agenda' | 'receber' | 'pagar' | 'vales'
 
 export function Pagamentos() {
   const { perfil, empresa } = useAuth()
-  const [aba, setAba] = useState<Aba>('pagar')
+  const [aba, setAba] = useState<Aba>('agenda')
   const { dados: valesPendentes } = useVales('SOLICITADO')
 
   const ABAS: { id: Aba; rotulo: string; aviso?: number }[] = [
-    { id: 'pagar', rotulo: 'A pagar' },
+    { id: 'agenda', rotulo: 'Agenda' },
+    { id: 'receber', rotulo: 'Receber' },
+    { id: 'pagar', rotulo: 'Pagar' },
     { id: 'vales', rotulo: 'Vales', aviso: valesPendentes.length },
-    { id: 'historico', rotulo: 'Histórico' },
   ]
 
   if (!perfil || !empresa) return <CarregandoLista />
 
   return (
     <>
-      <BarraTopo titulo="Pagamentos" subtitulo="Acerte com sua equipe" />
+      <BarraTopo titulo="Caixa" subtitulo="O que entra e o que sai" />
 
       <div className="sticky top-16 z-20 bg-canvas/85 backdrop-blur-xl border-b border-line/70">
         <div className="max-w-2xl lg:max-w-3xl mx-auto px-4 flex gap-1">
@@ -62,9 +65,10 @@ export function Pagamentos() {
       </div>
 
       <main className="max-w-2xl lg:max-w-3xl mx-auto px-4 pt-4">
+        {aba === 'agenda' && <Agenda />}
+        {aba === 'receber' && <AReceber />}
         {aba === 'pagar' && <AbaAPagar />}
         {aba === 'vales' && <PainelVales empresaId={perfil.empresaId} />}
-        {aba === 'historico' && <AbaHistorico />}
         <EspacoBarra />
       </main>
     </>
@@ -202,6 +206,8 @@ function AbaAPagar() {
         )
       })}
 
+      <AbaHistorico />
+
       {emPagamento && colaboradorEmPagamento && (
         <SheetPix
           colaborador={colaboradorEmPagamento}
@@ -233,18 +239,13 @@ function AbaHistorico() {
 
   if (carregando) return <CarregandoLista linhas={3} />
 
-  if (ordenados.length === 0) {
-    return (
-      <EstadoVazio
-        icone={<History size={34} />}
-        titulo="Nenhum pagamento ainda"
-        descricao="Todo acerto que você fizer fica guardado aqui, com data e valor."
-      />
-    )
-  }
+  if (ordenados.length === 0) return null
 
   return (
-    <div className="space-y-2.5 animate-fade-up">
+    <div className="space-y-2.5 animate-fade-up pt-2">
+      <h2 className="px-1 pb-1 pt-4 text-[13px] font-bold text-faint uppercase tracking-wide">
+        Já pagos
+      </h2>
       {ordenados.map((p) => (
         <div key={p.id} className="card p-4 flex items-center gap-3.5">
           <Avatar

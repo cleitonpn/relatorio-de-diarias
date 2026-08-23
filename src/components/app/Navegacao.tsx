@@ -51,7 +51,7 @@ const ABAS = [
   { para: '/feiras', rotulo: 'Feiras', Icone: CalendarDays },
   { para: '/dinheiro', rotulo: 'Dinheiro', Icone: Wallet },
   { para: '/equipe', rotulo: 'Equipe', Icone: Users },
-  { para: '/pagamentos', rotulo: 'Pagar', Icone: HandCoins },
+  { para: '/pagamentos', rotulo: 'Caixa', Icone: HandCoins },
 ]
 
 export function BarraInferior({ aviso, veFinanceiro = true }: { aviso?: number; veFinanceiro?: boolean }) {

@@ -252,6 +252,62 @@ export interface Stand {
   criadoEm: Timestamp
 }
 
+/* ------------------------------ Recebimentos ------------------------------- */
+
+export type StatusRecebimento = 'PREVISTO' | 'RECEBIDO' | 'PARCIAL'
+
+/**
+ * Uma parcela que o CONTRATANTE deve a ele.
+ *
+ * Sem isso o app só sabe metade da história: quanto ele tem a pagar, mas não
+ * quanto tem a receber nem quando. É o que separa um controle de custo de um
+ * gestor financeiro de verdade.
+ *
+ * A data é sempre uma PREVISÃO — o financeiro da contratante liga e muda, e o
+ * app precisa aguentar isso sem quebrar a conta.
+ */
+export interface Recebimento {
+  id: string
+  empresaId: string
+  feiraId: string
+  feiraNome: string
+  contratanteNome: string | null
+  /** "Entrada 50%", "Saldo", "Parcela 2 de 3"… */
+  descricao: string
+  /** O quanto era para cair. */
+  valorPrevisto: Centavos
+  dataPrevista: DataISO
+  status: StatusRecebimento
+  /** O quanto caiu de fato. */
+  valorRecebido: Centavos
+  dataRecebimento: DataISO | null
+  observacao: string | null
+  /** Quando um recebimento vem parcial, o resto vira outra parcela. */
+  origemParcial: string | null
+  criadoEm: Timestamp
+}
+
+/** Modelos de parcelamento que o empreiteiro reconhece de cara. */
+export type ModeloRecebimento = 'TUDO_FIM' | 'METADE_METADE' | 'PERSONALIZADO'
+
+export const MODELOS_RECEBIMENTO: {
+  valor: ModeloRecebimento
+  rotulo: string
+  descricao: string
+  emoji: string
+}[] = [
+  { valor: 'TUDO_FIM', rotulo: 'Tudo de uma vez', descricao: 'Recebe o total numa data', emoji: '💰' },
+  { valor: 'METADE_METADE', rotulo: 'Metade e metade', descricao: 'Uma antes, uma depois', emoji: '✌️' },
+  { valor: 'PERSONALIZADO', rotulo: 'Do meu jeito', descricao: 'Você monta as parcelas', emoji: '✍️' },
+]
+
+/** Parcela ainda sendo montada no formulário da feira. */
+export interface ParcelaPlanejada {
+  descricao: string
+  valor: Centavos
+  data: DataISO
+}
+
 /* ---------------------------- Diária (escala) ------------------------------ */
 
 export type Presenca = 'PREVISTO' | 'PRESENTE' | 'FALTOU'
