@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Campo } from '@/components/ui/Campo'
 import { cn } from '@/lib/cn'
@@ -48,10 +49,17 @@ export function Entrar() {
       >
         <div className="absolute -top-16 -right-10 w-56 h-56 rounded-full bg-white/10 blur-2xl" aria-hidden />
         <div className="relative max-w-md mx-auto">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-white/70 hover:text-white transition mb-6"
+          >
+            <ArrowLeft size={16} /> Voltar
+          </Link>
           <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur grid place-items-center mb-5">
             <svg viewBox="0 0 64 64" className="w-8 h-8">
-              <path d="M18 42V26l14-8 14 8v16" fill="none" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M26 42v-9h12v9" fill="none" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M25 13h14" stroke="white" strokeWidth="4.5" strokeLinecap="round" />
+              <path d="M32 13v17" stroke="white" strokeWidth="3" strokeLinecap="round" />
+              <path d="M32 30l9 11-9 12-9-12z" fill="white" />
             </svg>
           </div>
           <h1 className="text-[32px] font-extrabold leading-tight">Prumo</h1>

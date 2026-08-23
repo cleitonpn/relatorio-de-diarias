@@ -128,8 +128,9 @@ export function MenuLateral({ veFinanceiro = true }: { veFinanceiro?: boolean })
           style={{ backgroundImage: 'linear-gradient(135deg, #6366F1 0%, #312E81 100%)' }}
         >
           <svg viewBox="0 0 64 64" className="w-6 h-6">
-            <path d="M18 42V26l14-8 14 8v16" fill="none" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M26 42v-9h12v9" fill="none" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M25 13h14" stroke="white" strokeWidth="4.5" strokeLinecap="round" />
+            <path d="M32 13v17" stroke="white" strokeWidth="3" strokeLinecap="round" />
+            <path d="M32 30l9 11-9 12-9-12z" fill="white" />
           </svg>
         </div>
         <span className="text-[19px] font-extrabold">Prumo</span>

@@ -4,6 +4,7 @@ import { CarregandoTela } from '@/components/ui/Estados'
 import { BarraInferior, MenuLateral } from '@/components/app/Navegacao'
 import { AvisoAssinatura } from '@/components/app/AvisoAssinatura'
 import { Entrar } from '@/pages/Entrar'
+import { Home } from '@/pages/site/Home'
 import { Onboarding } from '@/pages/Onboarding'
 import { Hoje } from '@/pages/Hoje'
 import { Feiras } from '@/pages/Feiras'
@@ -26,15 +27,19 @@ export function App() {
   const { carregando, usuarioAuth, perfil, precisaOnboarding, ehAdmin } = useAuth()
 
   // O convite é público: quem recebe o link ainda não tem conta nem perfil.
-  const rotaConvite = (
-    <Routes>
-      <Route path="/convite/:codigo" element={<EntrarPorConvite />} />
-    </Routes>
-  )
-  if (window.location.pathname.startsWith('/convite/')) return rotaConvite
+  if (window.location.pathname.startsWith('/convite/')) {
+    return (
+      <Routes>
+        <Route path="/convite/:codigo" element={<EntrarPorConvite />} />
+      </Routes>
+    )
+  }
 
   if (carregando) return <CarregandoTela />
-  if (!usuarioAuth) return <Entrar />
+
+  // Quem não está logado vê o site, não o formulário de login. A porta de
+  // entrada precisa apresentar o produto antes de pedir alguma coisa.
+  if (!usuarioAuth) return <AreaPublica />
   // Administrar a plataforma não exige ter um negócio cadastrado.
   if (precisaOnboarding) return ehAdmin ? <AdminSemConta /> : <Onboarding />
   if (!perfil) return <CarregandoTela />
@@ -43,6 +48,26 @@ export function App() {
   if (perfil.papel === 'COLABORADOR') return <MinhaConta />
 
   return <AreaLogada />
+}
+
+function AreaPublica() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/entrar" element={<Entrar />} />
+      <Route path="/termos" element={<TermosPublicos />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+/** Os termos precisam ser legíveis por quem ainda não tem conta. */
+function TermosPublicos() {
+  return (
+    <div className="min-h-dvh bg-canvas">
+      <Termos />
+    </div>
+  )
 }
 
 function AreaLogada() {
