@@ -13,8 +13,9 @@ import {
   precoHabitualPorM2,
   TEXTO_SAUDE,
 } from '@/lib/calc'
-import { moeda, percentual } from '@/lib/format'
+import { metrosQuadrados, moeda, percentual } from '@/lib/format'
 import { registrar } from '@/lib/telemetria'
+import type { Centavos } from '@/types'
 
 /**
  * "Vale a pena?"
@@ -194,7 +195,8 @@ export function ValeAPena() {
           />
         </div>
 
-        {valorDeTabela !== null && (
+        {/* Enquanto ele não disse o valor, a tabela é só a âncora. */}
+        {valorDeTabela !== null && valor <= 0 && (
           <button
             onClick={() => setValor(valorDeTabela)}
             className="w-full flex items-center gap-3.5 p-4 rounded-3xl bg-brand-soft border border-brand/15 text-left active:scale-[.99] transition"
@@ -212,6 +214,20 @@ export function ValeAPena() {
               </div>
             </div>
           </button>
+        )}
+
+        {/* Dito o valor, a comparação vem antes de qualquer outra coisa: é ela
+            que ele precisa ter na boca enquanto o gerente está no telefone. */}
+        {valorDeTabela !== null && valor > 0 && (
+          <Comparativo
+            proposto={valor}
+            porM2Proposto={Math.round(valor / metros)}
+            referencia={referencia!}
+            valorDeTabela={valorDeTabela}
+            metros={metros}
+            ehTabela={tabela !== null}
+            aoUsarTabela={() => setValor(valorDeTabela)}
+          />
         )}
 
         {!referencia && (
@@ -335,29 +351,8 @@ export function ValeAPena() {
               />
             </div>
 
-            {/* Como essa proposta se compara ao preço dele */}
-            {metros > 0 && referencia && referencia > 0 && (
-              <div
-                className={cn(
-                  'p-4 rounded-3xl border',
-                  veredito.valorPorM2 >= referencia
-                    ? 'bg-lucro-soft border-lucro/20'
-                    : 'bg-alerta-soft border-alerta/20',
-                )}
-              >
-                <div className="text-[15px] font-bold leading-snug">
-                  Essa proposta paga {moeda(veredito.valorPorM2)} o m².
-                </div>
-                <div className="text-[13.5px] text-muted mt-1 leading-relaxed">
-                  {tabela
-                    ? `Sua tabela é ${moeda(tabela)} o m² — `
-                    : `Você costuma receber ${moeda(referencia)} o m² — `}
-                  {veredito.valorPorM2 >= referencia
-                    ? 'essa está no seu preço ou acima.'
-                    : `essa está ${percentual((referencia - veredito.valorPorM2) / referencia)} abaixo.`}
-                </div>
-              </div>
-            )}
+            {/* A comparação por m² sobe para o topo da tela, junto do campo em
+                que ele digita o valor — repetir aqui só alongaria a rolagem. */}
 
             {/* O desconto que ele dá sem perceber: tabela contra realidade */}
             {tabela && habitual && habitual > 0 && habitual < tabela * 0.95 && (
@@ -383,6 +378,125 @@ export function ValeAPena() {
         <EspacoBarra />
       </main>
     </>
+  )
+}
+
+/**
+ * O que ofereceram × o que ele cobra, lado a lado, por m².
+ *
+ * É a conta que ele faz de cabeça enquanto o gerente espera na linha — e a que
+ * ele erra, porque dividir 5.000 por 72 no susto ninguém faz. Aqui os dois
+ * números ficam encostados um no outro, e a diferença aparece nas duas
+ * unidades que importam: no metro (que é a linguagem da negociação) e no total
+ * (que é o dinheiro que sai ou entra no bolso dele).
+ */
+function Comparativo({
+  proposto,
+  porM2Proposto,
+  referencia,
+  valorDeTabela,
+  metros,
+  ehTabela,
+  aoUsarTabela,
+}: {
+  proposto: Centavos
+  porM2Proposto: Centavos
+  /** O preço dele por m²: a tabela, ou o histórico quando não há tabela. */
+  referencia: Centavos
+  /** O que a metragem daria pelo preço dele. */
+  valorDeTabela: Centavos
+  metros: number
+  ehTabela: boolean
+  aoUsarTabela: () => void
+}) {
+  // A diferença no total sai dos valores cheios, nunca do preço por m² já
+  // arredondado — senão a conta não fecha com o que está escrito na tela.
+  const diferencaTotal = proposto - valorDeTabela
+  const diferencaPorM2 = porM2Proposto - referencia
+  const abaixo = diferencaTotal < 0
+  // Um centavo no metro é ruído de arredondamento, não negociação.
+  const igual = Math.abs(diferencaTotal) < 100
+
+  return (
+    <div
+      className={cn(
+        'p-4 rounded-3xl border',
+        igual
+          ? 'bg-raised border-line'
+          : abaixo
+            ? 'bg-custo-soft border-custo/20'
+            : 'bg-lucro-soft border-lucro/20',
+      )}
+    >
+      <div className="flex items-stretch gap-3">
+        <Lado rotulo="Ofereceram" valor={porM2Proposto} />
+        <div className="w-px bg-line shrink-0" aria-hidden />
+        <Lado
+          rotulo={ehTabela ? 'Sua tabela' : 'Você costuma'}
+          valor={referencia}
+          destaque
+        />
+      </div>
+
+      <div className="mt-3.5 pt-3.5 border-t border-line/70">
+        {igual ? (
+          <div className="text-[14.5px] font-bold">
+            É o seu preço. {ehTabela ? 'Bateu com a sua tabela.' : 'Bateu com o seu costume.'}
+          </div>
+        ) : (
+          <>
+            <div
+              className={cn(
+                'text-[15px] font-bold leading-snug',
+                abaixo ? 'text-custo' : 'text-lucro',
+              )}
+            >
+              {moeda(Math.abs(diferencaPorM2))} {abaixo ? 'a menos' : 'a mais'} no m²
+            </div>
+            <div className="text-[13.5px] text-muted mt-0.5 leading-relaxed">
+              Nos {metrosQuadrados(metros)}, {moeda(Math.abs(diferencaTotal))}{' '}
+              {abaixo ? 'a menos do que você cobra' : 'acima do que você cobra'} —{' '}
+              {percentual(Math.abs(diferencaTotal) / valorDeTabela)}{' '}
+              {abaixo ? 'abaixo' : 'acima'}.
+            </div>
+          </>
+        )}
+
+        {abaixo && (
+          <button
+            onClick={aoUsarTabela}
+            className="w-full mt-3 h-11 rounded-2xl bg-canvas border border-line text-[14px] font-bold active:scale-[.99] transition"
+          >
+            Usar o seu preço: {moeda(valorDeTabela)}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Lado({
+  rotulo,
+  valor,
+  destaque,
+}: {
+  rotulo: string
+  valor: Centavos
+  destaque?: boolean
+}) {
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="text-[11px] font-bold text-faint uppercase tracking-wide">{rotulo}</div>
+      <div
+        className={cn(
+          'tnum text-[21px] font-extrabold leading-tight mt-0.5 whitespace-nowrap',
+          destaque && 'text-brand',
+        )}
+      >
+        {moeda(valor)}
+      </div>
+      <div className="text-[12px] text-muted">o m²</div>
+    </div>
   )
 }
 
