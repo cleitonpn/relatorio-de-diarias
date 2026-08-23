@@ -18,6 +18,7 @@ import { useToast } from '@/components/app/Toast'
 import { mostraCobranca } from '@/lib/platform'
 import { plano, PLANOS, PREMIOS_INDICACAO } from '@/lib/planos'
 import { moeda } from '@/lib/format'
+import { MARCA } from '@/lib/marca'
 import { Sheet } from '@/components/ui/Sheet'
 import { FormPerfil } from './FormPerfil'
 import { EquipeGestao } from './EquipeGestao'
@@ -200,7 +201,7 @@ export function Ajustes() {
           <LogOut size={18} /> Sair da conta
         </button>
 
-        <p className="text-center text-[12px] text-faint pt-2">Prumo · versão 0.2</p>
+        <p className="text-center text-[12px] text-faint pt-2">{MARCA.nome} · versão 0.2</p>
 
         <EspacoBarra />
       </main>

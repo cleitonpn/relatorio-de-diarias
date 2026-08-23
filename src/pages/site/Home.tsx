@@ -16,6 +16,7 @@ import {
 import { PLANOS } from '@/lib/planos'
 import { moeda } from '@/lib/format'
 import { Mockup } from './Mockup'
+import { MARCA, SimboloMarca } from '@/lib/marca'
 
 /**
  * A página que vende o produto.
@@ -167,15 +168,9 @@ function Logo() {
         className="w-9 h-9 rounded-xl grid place-items-center"
         style={{ backgroundImage: 'linear-gradient(135deg, #6366F1 0%, #312E81 100%)' }}
       >
-<svg viewBox="0 0 64 64" className="w-5 h-5">
-          {/* prumo: barra curta, fio e o peso — o peso precisa dominar, senão
-              no tamanho pequeno o desenho lê como a letra T */}
-          <path d="M25 13h14" stroke="white" strokeWidth="4.5" strokeLinecap="round" />
-          <path d="M32 13v17" stroke="white" strokeWidth="3" strokeLinecap="round" />
-          <path d="M32 30l9 11-9 12-9-12z" fill="white" />
-        </svg>
+<SimboloMarca className="w-5 h-5 text-white" />
       </span>
-      <span className="text-[19px] font-extrabold tracking-tight">Prumo</span>
+      <span className="text-[19px] font-extrabold tracking-tight">{MARCA.nome}</span>
     </Link>
   )
 }
@@ -225,7 +220,7 @@ function Hero() {
           </h1>
 
           <p className="mt-6 text-[clamp(16px,2.2vw,20px)] text-white/60 leading-relaxed max-w-xl">
-            O Prumo controla suas feiras, sua equipe e o seu dinheiro. Você vê o lucro de cada
+            O {MARCA.nome} controla suas feiras, sua equipe e o seu dinheiro. Você vê o lucro de cada
             stand, sabe quanto pagar a cada um e paga por PIX sem errar valor.
           </p>
 
@@ -381,7 +376,7 @@ function Recursos() {
           className="md:col-span-6"
           icone={<WifiOff size={22} />}
           titulo="Funciona sem sinal"
-          texto="Pavilhão de feira não tem internet, e é ali que você mais precisa marcar presença. O Prumo grava no seu celular e sincroniza sozinho quando o sinal volta."
+          texto="Pavilhão de feira não tem internet, e é ali que você mais precisa marcar presença. O {MARCA.nome} grava no seu celular e sincroniza sozinho quando o sinal volta."
         />
       </div>
     </Secao>
@@ -673,7 +668,7 @@ function Perguntas() {
     },
     {
       p: 'O app manda o PIX sozinho?',
-      r: 'Ele monta o código copia e cola com o valor certo, e você cola no app do seu banco. O dinheiro nunca passa pelo Prumo — quem paga é você, no seu banco.',
+      r: `Ele monta o código copia e cola com o valor certo, e você cola no app do seu banco. O dinheiro nunca passa pelo ${MARCA.nome} — quem paga é você, no seu banco.`,
     },
     {
       p: 'Preciso de cartão para testar?',
@@ -769,7 +764,7 @@ function Rodape() {
             Entrar
           </Link>
         </div>
-        <p className="text-[13px] text-white/30">Prumo · seu trabalho no prumo</p>
+        <p className="text-[13px] text-white/30">{MARCA.nome} · seu trabalho no prumo</p>
       </div>
     </footer>
   )

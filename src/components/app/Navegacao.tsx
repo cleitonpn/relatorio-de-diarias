@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { ArrowLeft, CalendarDays, HandCoins, Home, Settings, Users, Wallet } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/cn'
+import { MARCA, SimboloMarca } from '@/lib/marca'
 
 /* --------------------------------- Topo --------------------------------- */
 
@@ -127,13 +128,9 @@ export function MenuLateral({ veFinanceiro = true }: { veFinanceiro?: boolean })
           className="w-10 h-10 rounded-2xl grid place-items-center"
           style={{ backgroundImage: 'linear-gradient(135deg, #6366F1 0%, #312E81 100%)' }}
         >
-          <svg viewBox="0 0 64 64" className="w-6 h-6">
-            <path d="M25 13h14" stroke="white" strokeWidth="4.5" strokeLinecap="round" />
-            <path d="M32 13v17" stroke="white" strokeWidth="3" strokeLinecap="round" />
-            <path d="M32 30l9 11-9 12-9-12z" fill="white" />
-          </svg>
+          <SimboloMarca className="w-6 h-6 text-white" />
         </div>
-        <span className="text-[19px] font-extrabold">Prumo</span>
+        <span className="text-[19px] font-extrabold">{MARCA.nome}</span>
       </div>
 
       <nav className="flex-1 px-3 space-y-1">

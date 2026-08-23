@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Campo } from '@/components/ui/Campo'
+import { MARCA, SimboloMarca } from '@/lib/marca'
 import { cn } from '@/lib/cn'
 
 type Modo = 'entrar' | 'criar'
@@ -56,15 +57,11 @@ export function Entrar() {
             <ArrowLeft size={16} /> Voltar
           </Link>
           <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur grid place-items-center mb-5">
-            <svg viewBox="0 0 64 64" className="w-8 h-8">
-              <path d="M25 13h14" stroke="white" strokeWidth="4.5" strokeLinecap="round" />
-              <path d="M32 13v17" stroke="white" strokeWidth="3" strokeLinecap="round" />
-              <path d="M32 30l9 11-9 12-9-12z" fill="white" />
-            </svg>
+            <SimboloMarca className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-[32px] font-extrabold leading-tight">Prumo</h1>
+          <h1 className="text-[32px] font-extrabold leading-tight">{MARCA.nome}</h1>
           <p className="text-[16px] text-white/80 mt-1.5 leading-relaxed">
-            Seu trabalho no prumo: feiras, equipe e o quanto sobra pra você.
+            {MARCA.chamada}
           </p>
         </div>
       </div>
