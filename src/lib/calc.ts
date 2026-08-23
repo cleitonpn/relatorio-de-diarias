@@ -1,4 +1,5 @@
-import type { Centavos, Custo, Diaria, Feira, Resultado, Stand } from '@/types'
+import { FASES, type Centavos, type Custo, type DataISO, type Diaria, type Fase, type Feira, type Resultado, type Stand } from '@/types'
+import { dataCurta, diasEntre, periodo as periodo_ } from './format'
 
 /** Quanto uma diária custa de fato (valor congelado × multiplicador). */
 export function valorDaDiaria(d: Diaria): Centavos {
@@ -255,4 +256,36 @@ export function agruparPorFeira<T extends { feiraId: string }>(itens: T[]): Reco
     ;(mapa[item.feiraId] ??= []).push(item)
   }
   return mapa
+}
+
+/* --------------------------- Fases da feira --------------------------- */
+
+/**
+ * Quais fases essa feira tem.
+ *
+ * Feira cadastrada antes do calendário por fase existir devolve as três, com
+ * o intervalo inteiro — o comportamento antigo, para nada quebrar.
+ */
+export function fasesDaFeira(feira: Feira): Fase[] {
+  if (!feira.fases) return FASES.map((f) => f.valor)
+  return FASES.map((f) => f.valor).filter((f) => !!feira.fases?.[f])
+}
+
+/** Os dias em que uma fase acontece. */
+export function diasDaFase(feira: Feira, fase: Fase): DataISO[] {
+  const periodo = feira.fases?.[fase]
+  if (!periodo) {
+    // Sem calendário por fase: vale o intervalo inteiro da feira.
+    return feira.fases ? [] : diasEntre(feira.dataInicio, feira.dataFim)
+  }
+  return diasEntre(periodo.inicio, periodo.fim)
+}
+
+/** "10 a 12 de mar" — o rótulo que aparece no botão da fase. */
+export function periodoDaFase(feira: Feira, fase: Fase): string | null {
+  const periodo = feira.fases?.[fase]
+  if (!periodo) return null
+  return periodo.inicio === periodo.fim
+    ? dataCurta(periodo.inicio)
+    : periodo_(periodo.inicio, periodo.fim)
 }

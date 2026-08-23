@@ -104,6 +104,11 @@ export async function criarDadosDemo(empresaId: string): Promise<ResultadoDemo> 
     contratanteNome: 'Montadora Central Eventos',
     dataInicio: inicio,
     dataFim: fim,
+    fases: {
+      MONTAGEM: { inicio, fim: somarDias(hoje, -1) },
+      EVENTO: { inicio: hoje, fim: somarDias(hoje, 1) },
+      DESMONTAGEM: { inicio: fim, fim },
+    },
     modo: 'POR_STAND',
     pacoteValor: null,
     pacoteM2: null,
@@ -144,6 +149,11 @@ export async function criarDadosDemo(empresaId: string): Promise<ResultadoDemo> 
     contratanteNome: 'Montadora Central Eventos',
     dataInicio: somarDias(hoje, -25),
     dataFim: somarDias(hoje, -20),
+    fases: {
+      MONTAGEM: { inicio: somarDias(hoje, -25), fim: somarDias(hoje, -22) },
+      EVENTO: null,
+      DESMONTAGEM: { inicio: somarDias(hoje, -20), fim: somarDias(hoje, -20) },
+    },
     modo: 'PACOTE',
     pacoteValor: 9000000,
     pacoteM2: 3000,

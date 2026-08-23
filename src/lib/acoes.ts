@@ -2,8 +2,11 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  getDocs,
+  query,
   serverTimestamp,
   updateDoc,
+  where,
   writeBatch,
 } from 'firebase/firestore'
 import { db } from './firebase'
@@ -273,4 +276,35 @@ export async function liberarDiariasParaTransferencia(
     await batch.commit()
   }
   return transferiveis.length
+}
+
+/**
+ * Apaga uma feira e tudo que pendura nela.
+ *
+ * Cadastro errado acontece, e deixar lixo no relatório é pior que apagar.
+ * Diária já paga trava a exclusão: apagar o que foi pago quebraria o
+ * histórico do acerto, e essa conta precisa ser inquestionável.
+ */
+export async function apagarFeira(empresaId: string, feiraId: string): Promise<void> {
+  const [diarias, custos, stands] = await Promise.all([
+    getDocs(query(colDiarias(empresaId), where('feiraId', '==', feiraId))),
+    getDocs(query(colCustos(empresaId), where('feiraId', '==', feiraId))),
+    getDocs(query(colStands(empresaId), where('feiraId', '==', feiraId))),
+  ])
+
+  const paga = diarias.docs.find((d) => !!d.data().pagamentoId)
+  if (paga) {
+    throw new Error(
+      'Essa feira já tem diária paga. Desfaça o pagamento antes de apagar.',
+    )
+  }
+
+  // Coleções diferentes, então o tipo do documento varia: só o caminho importa.
+  const alvos = [...diarias.docs, ...custos.docs, ...stands.docs].map((d) => d.ref.path)
+  for (let i = 0; i < alvos.length; i += 450) {
+    const batch = writeBatch(db)
+    for (const caminho of alvos.slice(i, i + 450)) batch.delete(doc(db, caminho))
+    await batch.commit()
+  }
+  await deleteDoc(doc(colFeiras(empresaId), feiraId))
 }

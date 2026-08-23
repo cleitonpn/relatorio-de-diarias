@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react'
 import { AlertTriangle, ArrowLeft, ArrowRight, Check, Loader2, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Sheet } from '@/components/ui/Sheet'
-import { Selecao } from '@/components/ui/Campo'
 import { Avatar } from '@/components/ui/Avatar'
 import { useToast } from '@/components/app/Toast'
 import { useColaboradores, useDiariasNoPeriodo, useFeiras } from '@/hooks/useDados'
 import { escalarEmLote, liberarDiariasParaTransferencia } from '@/lib/acoes'
 import { cn } from '@/lib/cn'
-import { dataCurta, dataPorExtenso, diasEntre, isoParaData, moeda, nomeCurto } from '@/lib/format'
+import { dataCurta, dataPorExtenso, isoParaData, moeda, nomeCurto } from '@/lib/format'
+import { diasDaFase, fasesDaFeira, periodoDaFase } from '@/lib/calc'
 import { FASES, type Diaria, type Fase, type Feira } from '@/types'
 
 interface Props {
@@ -39,12 +39,22 @@ export function FormEscala({ empresaId, feira, jaEscaladas, standId, aoFechar }:
   const { dados: feiras } = useFeiras()
   const { dados: diariasNoPeriodo } = useDiariasNoPeriodo(feira.dataInicio, feira.dataFim)
 
-  const dias = useMemo(() => diasEntre(feira.dataInicio, feira.dataFim), [feira])
+  const disponiveis = useMemo(() => fasesDaFeira(feira), [feira])
 
   const [etapa, setEtapa] = useState<Etapa>('quem')
   const [pessoas, setPessoas] = useState<Set<string>>(new Set())
-  const [diasEscolhidos, setDiasEscolhidos] = useState<Set<string>>(new Set(dias))
-  const [fase, setFase] = useState<Fase>('MONTAGEM')
+  // Nada vem marcado: quem escolhe os dias é ele, não o sistema.
+  const [diasEscolhidos, setDiasEscolhidos] = useState<Set<string>>(new Set())
+  const [fase, setFase] = useState<Fase>(disponiveis[0] ?? 'MONTAGEM')
+
+  /** Só os dias da fase escolhida — é o que torna a divisão clara. */
+  const dias = useMemo(() => diasDaFase(feira, fase), [feira, fase])
+
+  /** Trocar de fase zera os dias: eles pertencem a outra parte do calendário. */
+  function trocarFase(nova: Fase) {
+    setFase(nova)
+    setDiasEscolhidos(new Set())
+  }
   const [ocupado, setOcupado] = useState(false)
 
   /** Chave pessoa+dia do que já está lançado — evita diária duplicada. */
@@ -238,8 +248,10 @@ export function FormEscala({ empresaId, feira, jaEscaladas, standId, aoFechar }:
               >
                 {ocupado ? (
                   <Loader2 size={20} className="animate-spin" />
-                ) : aCriar.total === 0 ? (
+                ) : diasEscolhidos.size === 0 ? (
                   'Escolha os dias'
+                ) : aCriar.total === 0 ? (
+                  'Já estão escalados nesses dias'
                 ) : (
                   `Escalar ${pessoas.size} ${pessoas.size === 1 ? 'pessoa' : 'pessoas'}`
                 )}
@@ -380,12 +392,52 @@ export function FormEscala({ empresaId, feira, jaEscaladas, standId, aoFechar }:
         </div>
       ) : (
         <div className="space-y-6 animate-fade-up">
+          {/* A fase vem antes dos dias: ela é que define quais dias existem */}
+          <div>
+            <span className="label">Que parte do trabalho?</span>
+            <div className="space-y-2">
+              {disponiveis.map((f) => {
+                const info = FASES.find((x) => x.valor === f)!
+                const quando = periodoDaFase(feira, f)
+                const ativo = fase === f
+                return (
+                  <button
+                    key={f}
+                    onClick={() => trocarFase(f)}
+                    className={cn(
+                      'w-full p-3.5 rounded-2xl border-2 flex items-center gap-3 text-left transition active:scale-[.99]',
+                      ativo ? 'border-brand bg-brand-soft' : 'border-line bg-raised',
+                    )}
+                  >
+                    <span className="shrink-0 text-[21px]">{info.emoji}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-bold text-[15.5px]">{info.rotulo}</span>
+                      {quando && (
+                        <span className="block text-[13px] text-muted">{quando}</span>
+                      )}
+                    </span>
+                    <span
+                      className={cn(
+                        'shrink-0 w-6 h-6 rounded-full border-2 grid place-items-center',
+                        ativo ? 'bg-brand border-brand text-white' : 'border-line',
+                      )}
+                    >
+                      {ativo && <Check size={14} strokeWidth={3} />}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <div>
             <div className="flex items-baseline justify-between mb-2">
-              <span className="label mb-0">Dias de trabalho</span>
+              <span className="label mb-0">Quais dias</span>
               <button
                 onClick={() =>
-                  setDiasEscolhidos(diasEscolhidos.size === dias.length ? new Set() : new Set(dias))
+                  setDiasEscolhidos(
+                    diasEscolhidos.size === dias.length ? new Set() : new Set(dias),
+                  )
                 }
                 className="text-[13px] font-bold text-brand"
               >
@@ -393,12 +445,10 @@ export function FormEscala({ empresaId, feira, jaEscaladas, standId, aoFechar }:
               </button>
             </div>
 
-            {/* Todos vêm marcados porque é o caso comum. Dizer isso em voz alta
-                evita que a escolha passe por enfeite. */}
             <p className="text-[13px] text-muted mb-3 leading-relaxed">
-              {diasEscolhidos.size === dias.length
-                ? 'Todos os dias da feira estão marcados. Toque em um dia para desmarcar.'
-                : `${diasEscolhidos.size} de ${dias.length} dias marcados.`}
+              {diasEscolhidos.size === 0
+                ? 'Toque nos dias em que essa gente vai trabalhar.'
+                : `${diasEscolhidos.size} de ${dias.length} ${dias.length === 1 ? 'dia marcado' : 'dias marcados'}.`}
             </p>
 
             <div className="scroll-x -mx-1 px-1">
@@ -418,11 +468,16 @@ export function FormEscala({ empresaId, feira, jaEscaladas, standId, aoFechar }:
                       )}
                     >
                       <div
-                        className={cn('text-[11px] font-bold', ativo ? 'text-white/70' : 'text-faint')}
+                        className={cn(
+                          'text-[11px] font-bold',
+                          ativo ? 'text-white/70' : 'text-faint',
+                        )}
                       >
                         {DIAS_ABREV[data.getDay()]}
                       </div>
-                      <div className="text-[15px] font-extrabold leading-tight">{data.getDate()}</div>
+                      <div className="text-[15px] font-extrabold leading-tight">
+                        {data.getDate()}
+                      </div>
                       <div className={cn('text-[10px]', ativo ? 'text-white/70' : 'text-faint')}>
                         {dataCurta(dia).split(' ')[1]}
                       </div>
@@ -432,14 +487,6 @@ export function FormEscala({ empresaId, feira, jaEscaladas, standId, aoFechar }:
               </div>
             </div>
           </div>
-
-          <Selecao<Fase>
-            rotulo="Fase do trabalho"
-            opcoes={FASES.map((f) => ({ valor: f.valor, rotulo: f.rotulo, emoji: f.emoji }))}
-            valor={fase}
-            onChange={setFase}
-            colunas={3}
-          />
 
           {/* Quem foi escolhido no passo anterior, para ele conferir sem voltar */}
           <div className="p-4 rounded-2xl bg-raised">

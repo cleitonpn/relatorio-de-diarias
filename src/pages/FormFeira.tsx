@@ -1,13 +1,24 @@
 import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Sheet } from '@/components/ui/Sheet'
 import { Campo, CampoDinheiro, Selecao } from '@/components/ui/Campo'
 import { useToast } from '@/components/app/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useContratantes } from '@/hooks/useDados'
-import { criarContratante, salvarFeira } from '@/lib/acoes'
-import { hojeISO, somarDias } from '@/lib/format'
-import { POLITICAS, type Feira, type ModoFeira, type PoliticaPagamento } from '@/types'
+import { apagarFeira, criarContratante, salvarFeira } from '@/lib/acoes'
+import { dataCurta, hojeISO, somarDias } from '@/lib/format'
+import { BlocoFase } from './BlocoFase'
+import {
+  FASES,
+  POLITICAS,
+  type CalendarioFases,
+  type Fase,
+  type Feira,
+  type ModoFeira,
+  type PeriodoFase,
+  type PoliticaPagamento,
+} from '@/types'
 
 interface Props {
   empresaId: string
@@ -19,6 +30,7 @@ interface Props {
 
 export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
   const toast = useToast()
+  const navigate = useNavigate()
   const { empresa } = useAuth()
   const { dados: contratantes } = useContratantes()
   const novo = !feira
@@ -26,8 +38,25 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
   const [nome, setNome] = useState(feira?.nome ?? '')
   const [local, setLocal] = useState(feira?.local ?? '')
   const [contratante, setContratante] = useState(feira?.contratanteNome ?? '')
-  const [dataInicio, setDataInicio] = useState(feira?.dataInicio ?? hojeISO())
-  const [dataFim, setDataFim] = useState(feira?.dataFim ?? somarDias(hojeISO(), 3))
+  /**
+   * Feira antiga (sem calendário por fase) entra aqui com o intervalo inteiro
+   * em Montagem, para ele conferir e ajustar em vez de perder a informação.
+   */
+  const [fases, setFases] = useState<CalendarioFases>(() => {
+    if (feira?.fases) return feira.fases
+    if (feira) {
+      return {
+        MONTAGEM: { inicio: feira.dataInicio, fim: feira.dataFim },
+        EVENTO: null,
+        DESMONTAGEM: null,
+      }
+    }
+    return {
+      MONTAGEM: { inicio: hojeISO(), fim: somarDias(hojeISO(), 2) },
+      EVENTO: null,
+      DESMONTAGEM: null,
+    }
+  })
   const [modo, setModo] = useState<ModoFeira>(feira?.modo ?? 'POR_STAND')
   const [pacoteValor, setPacoteValor] = useState(feira?.pacoteValor ?? 0)
   const [pacoteM2, setPacoteM2] = useState(String(feira?.pacoteM2 ?? ''))
@@ -37,12 +66,54 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
   )
   const [almoco, setAlmoco] = useState(feira?.almocoPorPessoaDia ?? empresa?.almocoPadrao ?? 2500)
   const [ocupado, setOcupado] = useState(false)
+  const [apagando, setApagando] = useState(false)
   const [erros, setErros] = useState<Record<string, string>>({})
+
+  const definirFase = (fase: Fase, periodo: PeriodoFase | null) =>
+    setFases((atual) => ({ ...atual, [fase]: periodo }))
+
+  /**
+   * Ao ligar uma fase, sugere datas encostadas na fase anterior — é a ordem
+   * natural do trabalho, e poupa ele de digitar duas datas do zero.
+   */
+  function sugestaoDaFase(fase: Fase): PeriodoFase {
+    const montagem = fases.MONTAGEM
+    const evento = fases.EVENTO
+    if (fase === 'MONTAGEM') {
+      return { inicio: hojeISO(), fim: somarDias(hojeISO(), 2) }
+    }
+    if (fase === 'EVENTO') {
+      const base = montagem ? somarDias(montagem.fim, 1) : hojeISO()
+      return { inicio: base, fim: somarDias(base, 3) }
+    }
+    const base = evento
+      ? somarDias(evento.fim, 1)
+      : montagem
+        ? somarDias(montagem.fim, 1)
+        : hojeISO()
+    return { inicio: base, fim: base }
+  }
+
+  /** Primeiro e último dia entre todas as fases ligadas. */
+  const intervalo = (() => {
+    const datas = FASES.map((f) => fases[f.valor]).filter(Boolean) as PeriodoFase[]
+    if (datas.length === 0) return null
+    return {
+      inicio: datas.map((d) => d.inicio).sort()[0],
+      fim: datas.map((d) => d.fim).sort().at(-1)!,
+    }
+  })()
 
   function validar(): boolean {
     const e: Record<string, string> = {}
     if (nome.trim().length < 2) e.nome = 'Escreva o nome da feira'
-    if (dataFim < dataInicio) e.dataFim = 'A data de fim é antes do começo'
+    if (!intervalo) e.fases = 'Marque pelo menos uma parte do trabalho'
+    for (const f of FASES) {
+      const periodo = fases[f.valor]
+      if (periodo && periodo.fim < periodo.inicio) {
+        e[`fase_${f.valor}`] = 'O fim está antes do começo'
+      }
+    }
     if (modo === 'PACOTE' && pacoteValor <= 0) e.pacoteValor = 'Quanto você vai receber pelo pacote?'
     setErros(e)
     return Object.keys(e).length === 0
@@ -69,8 +140,9 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
           cidade: empresa?.cidade ?? null,
           contratanteId,
           contratanteNome: nomeContratante || null,
-          dataInicio,
-          dataFim,
+          dataInicio: intervalo!.inicio,
+          dataFim: intervalo!.fim,
+          fases,
           modo,
           pacoteValor: modo === 'PACOTE' ? pacoteValor : null,
           pacoteM2: modo === 'PACOTE' ? Number(pacoteM2) || null : null,
@@ -96,6 +168,25 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
     } catch {
       toast('Não deu para salvar. Tente de novo.', 'erro')
       setOcupado(false)
+    }
+  }
+
+  async function apagar() {
+    if (!feira) return
+    const confirmado = window.confirm(
+      `Apagar a feira "${feira.nome}"?\n\nIsso remove os stands, a escala e os gastos dela. Não tem como desfazer.`,
+    )
+    if (!confirmado) return
+
+    setApagando(true)
+    try {
+      await apagarFeira(empresaId, feira.id)
+      toast('Feira apagada')
+      aoFechar()
+      navigate('/feiras', { replace: true })
+    } catch (e) {
+      toast((e as Error).message || 'Não deu para apagar.', 'erro')
+      setApagando(false)
     }
   }
 
@@ -143,20 +234,40 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
           </datalist>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Campo
-            rotulo="Começa em"
-            type="date"
-            value={dataInicio}
-            onChange={(e) => setDataInicio(e.target.value)}
-          />
-          <Campo
-            rotulo="Termina em"
-            type="date"
-            value={dataFim}
-            onChange={(e) => setDataFim(e.target.value)}
-            erro={erros.dataFim}
-          />
+        <div>
+          <span className="label">Quando é cada parte do trabalho</span>
+          <p className="text-[13px] text-muted mb-3 leading-relaxed -mt-1">
+            Marque só as partes em que a sua equipe trabalha. Na hora de escalar, o app
+            mostra apenas os dias de cada uma.
+          </p>
+          <div className="space-y-2.5">
+            {FASES.map((f) => (
+              <BlocoFase
+                key={f.valor}
+                rotulo={f.rotulo}
+                emoji={f.emoji}
+                descricao={
+                  f.valor === 'MONTAGEM'
+                    ? 'Antes da feira abrir'
+                    : f.valor === 'EVENTO'
+                      ? 'Com a feira acontecendo'
+                      : 'Depois que a feira acaba'
+                }
+                periodo={fases[f.valor]}
+                aoMudar={(periodo) => definirFase(f.valor, periodo)}
+                sugestao={sugestaoDaFase(f.valor)}
+                erro={erros[`fase_${f.valor}`]}
+              />
+            ))}
+          </div>
+          {erros.fases && (
+            <span className="block mt-2 text-[13px] font-medium text-custo">{erros.fases}</span>
+          )}
+          {intervalo && (
+            <p className="mt-3 text-[13px] text-muted">
+              A feira vai de {dataCurta(intervalo.inicio)} a {dataCurta(intervalo.fim)}.
+            </p>
+          )}
         </div>
 
         <Selecao<ModoFeira>
@@ -231,6 +342,28 @@ export function FormFeira({ empresaId, feira, aoFechar, aoCriar }: Props) {
           onChange={setAlmoco}
           dica="Entra automático quando você marcar presença"
         />
+
+        {!novo && (
+          <div className="pt-4 border-t border-line">
+            <button
+              onClick={apagar}
+              disabled={ocupado || apagando}
+              className="btn w-full bg-custo-soft text-custo"
+            >
+              {apagando ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : (
+                <>
+                  <Trash2 size={18} /> Apagar esta feira
+                </>
+              )}
+            </button>
+            <p className="mt-2 text-[12.5px] text-faint text-center leading-relaxed">
+              Apaga também os stands, a escala e os gastos dela. Feira com diária já paga
+              não pode ser apagada.
+            </p>
+          </div>
+        )}
       </div>
     </Sheet>
   )

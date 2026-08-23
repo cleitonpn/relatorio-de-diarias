@@ -148,6 +148,20 @@ export const POLITICAS: { valor: PoliticaPagamento; rotulo: string; descricao: s
   { valor: 'DATA_FIXA', rotulo: 'Data marcada', descricao: 'Você escolhe o dia do acerto' },
 ]
 
+/** Um trecho de calendário: quando uma fase começa e termina. */
+export interface PeriodoFase {
+  inicio: DataISO
+  fim: DataISO
+}
+
+/**
+ * Calendário da feira por fase.
+ *
+ * Nulo em cada fase que não acontece: limpeza costuma não ter montagem,
+ * marcenaria costuma não ficar durante o evento.
+ */
+export type CalendarioFases = Record<Fase, PeriodoFase | null>
+
 /** Origem do registro — preparado para a futura importação do app de pendências. */
 export interface Origem {
   tipo: 'MANUAL' | 'IMPORTADO'
@@ -164,8 +178,14 @@ export interface Feira {
   cidade: string | null
   contratanteId: string | null
   contratanteNome: string | null // desnormalizado para listar sem join
+  /** Primeiro e último dia da feira — derivados das fases, para listar e ordenar. */
   dataInicio: DataISO
   dataFim: DataISO
+  /**
+   * Quando é cada fase. Nulo nas feiras cadastradas antes deste campo existir:
+   * nesse caso o app usa o intervalo inteiro para qualquer fase.
+   */
+  fases: CalendarioFases | null
   modo: ModoFeira
   /** Só no modo PACOTE. */
   pacoteValor: Centavos | null
