@@ -5,6 +5,8 @@ import {
   Copy,
   Gift,
   LogOut,
+  FileSpreadsheet,
+  HardHat,
   ShieldCheck,
   Sparkles,
   Wrench,
@@ -18,6 +20,7 @@ import { plano, PLANOS, PREMIOS_INDICACAO } from '@/lib/planos'
 import { moeda } from '@/lib/format'
 import { Sheet } from '@/components/ui/Sheet'
 import { FormPerfil } from './FormPerfil'
+import { EquipeGestao } from './EquipeGestao'
 import { cn } from '@/lib/cn'
 
 export function Ajustes() {
@@ -25,6 +28,7 @@ export function Ajustes() {
   const toast = useToast()
   const [vendoPlanos, setVendoPlanos] = useState(false)
   const [editandoPerfil, setEditandoPerfil] = useState(false)
+  const [vendoGestao, setVendoGestao] = useState(false)
 
   if (!perfil || !empresa) return null
 
@@ -90,6 +94,41 @@ export function Ajustes() {
               <ChevronRight size={20} className="shrink-0 text-faint" />
             </div>
           </button>
+        )}
+
+        {/* Quem ajuda na gestão — só o dono administra isso */}
+        {perfil.papel === 'DONO' && (
+          <button
+            onClick={() => setVendoGestao(true)}
+            className="w-full card p-5 text-left active:scale-[.99] transition"
+          >
+            <div className="flex items-center gap-3">
+              <div className="shrink-0 w-11 h-11 rounded-2xl bg-brand-soft text-brand-ink grid place-items-center">
+                <HardHat size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-[16px]">Quem ajuda na gestão</div>
+                <div className="text-[13.5px] text-muted">Encarregados e o que eles enxergam</div>
+              </div>
+              <ChevronRight size={20} className="shrink-0 text-faint" />
+            </div>
+          </button>
+        )}
+
+        {/* Pacote do contador */}
+        {perfil.papel === 'DONO' && (
+          <Link to="/contador" className="block card p-5 active:scale-[.99] transition">
+            <div className="flex items-center gap-3">
+              <div className="shrink-0 w-11 h-11 rounded-2xl bg-lucro-soft text-lucro grid place-items-center">
+                <FileSpreadsheet size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-[16px]">Para o contador</div>
+                <div className="text-[13.5px] text-muted">Planilha pronta, sem escrever nada</div>
+              </div>
+              <ChevronRight size={20} className="shrink-0 text-faint" />
+            </div>
+          </Link>
         )}
 
         {/* Indicação */}
@@ -169,6 +208,10 @@ export function Ajustes() {
           ehDono={perfil.papel === 'DONO'}
           aoFechar={() => setEditandoPerfil(false)}
         />
+      )}
+
+      {vendoGestao && empresa && (
+        <EquipeGestao empresa={empresa} aoFechar={() => setVendoGestao(false)} />
       )}
 
       {vendoPlanos && (

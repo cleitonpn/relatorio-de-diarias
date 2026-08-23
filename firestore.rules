@@ -29,6 +29,19 @@ service cloud.firestore {
       return pertenceA(empresaId) && perfil().papel == 'DONO';
     }
 
+    function ehGestor(empresaId) {
+      return pertenceA(empresaId) && perfil().papel in ['DONO', 'ENCARREGADO'];
+    }
+
+    /** Funcionário: enxerga apenas a própria vida dentro da empresa. */
+    function ehColaborador(empresaId) {
+      return pertenceA(empresaId) && perfil().papel == 'COLABORADOR';
+    }
+
+    function minhaFicha() {
+      return perfil().colaboradorId;
+    }
+
     function empresa(empresaId) {
       return get(/databases/$(database)/documents/empresas/$(empresaId)).data;
     }
@@ -61,6 +74,24 @@ service cloud.firestore {
         && empresa(empresaId).assinatura.status in ['TESTE', 'ATIVA', 'PENDENTE'];
     }
 
+    /* -------------------------------- Convites -------------------------------- */
+
+    match /convites/{codigo} {
+      // O código é o segredo — quem tem o link consegue ler para entrar.
+      allow get: if autenticado();
+      // Ninguém varre a lista de convites à procura de um código válido.
+      allow list: if ehAdmin() || (existePerfil() && perfil().papel == 'DONO');
+      allow create: if ehDono(request.resource.data.empresaId)
+        && request.resource.data.usado == false;
+      // Só marcar como usado, e só uma vez.
+      allow update: if autenticado()
+        && resource.data.usado == false
+        && request.resource.data.usado == true
+        && request.resource.data.empresaId == resource.data.empresaId
+        && request.resource.data.papel == resource.data.papel;
+      allow delete: if ehDono(resource.data.empresaId);
+    }
+
     /* --------------------------- Admin da plataforma --------------------------- */
 
     match /admins/{uid} {
@@ -77,11 +108,27 @@ service cloud.firestore {
         (existePerfil() && perfil().empresaId == resource.data.empresaId)
       ));
 
-      // Cadastro inicial: a pessoa só cria o próprio perfil, e só como DONO.
+      // Cadastro inicial. Dois caminhos, e só estes dois:
+      //  - quem abre o próprio negócio entra como DONO;
+      //  - quem foi convidado entra no papel que o convite diz, na empresa que
+      //    o convite diz. Sem isso, qualquer um se apontaria para uma empresa
+      //    alheia só escrevendo o próprio documento.
       allow create: if autenticado()
         && uid == request.auth.uid
-        && request.resource.data.papel == 'DONO'
-        && request.resource.data.ativo == true;
+        && request.resource.data.ativo == true
+        && (
+          (request.resource.data.papel == 'DONO' && request.resource.data.convite == null)
+          || (
+            request.resource.data.papel in ['ENCARREGADO', 'COLABORADOR']
+            && request.resource.data.convite != null
+            && exists(/databases/$(database)/documents/convites/$(request.resource.data.convite))
+            && get(/databases/$(database)/documents/convites/$(request.resource.data.convite)).data.empresaId
+                 == request.resource.data.empresaId
+            && get(/databases/$(database)/documents/convites/$(request.resource.data.convite)).data.papel
+                 == request.resource.data.papel
+            && get(/databases/$(database)/documents/convites/$(request.resource.data.convite)).data.usado == false
+          )
+        );
 
       // O dono administra os encarregados da própria empresa.
       allow update: if ehAdmin() || (autenticado() && (
@@ -116,43 +163,80 @@ service cloud.firestore {
       /* --------------------- Dados operacionais do tenant --------------------- */
 
       match /colaboradores/{id} {
-        allow read: if ehAdmin() || pertenceA(empresaId);
-        allow write: if ehAdmin() || podeEscrever(empresaId);
+        allow read: if ehAdmin() || ehGestor(empresaId)
+          || (ehColaborador(empresaId) && id == minhaFicha());
+        allow create, delete: if ehAdmin() || (podeEscrever(empresaId) && ehGestor(empresaId));
+        allow update: if ehAdmin()
+          || (podeEscrever(empresaId) && ehGestor(empresaId))
+          // O funcionário acerta a própria foto e a própria chave PIX. Quem
+          // digita a chave errada é sempre o chefe na pressa; deixar a pessoa
+          // conferir elimina uma classe inteira de erro de pagamento.
+          || (
+            ehColaborador(empresaId) && id == minhaFicha()
+            && request.resource.data.diariaPadrao == resource.data.diariaPadrao
+            && request.resource.data.ativo == resource.data.ativo
+            && request.resource.data.nome == resource.data.nome
+          );
       }
 
       match /contratantes/{id} {
-        allow read: if ehAdmin() || pertenceA(empresaId);
-        allow write: if ehAdmin() || podeEscrever(empresaId);
+        allow read: if ehAdmin() || ehGestor(empresaId);
+        allow write: if ehAdmin() || (podeEscrever(empresaId) && ehGestor(empresaId));
       }
 
       match /feiras/{id} {
+        // O funcionário precisa do nome e das datas da feira em que trabalhou.
         allow read: if ehAdmin() || pertenceA(empresaId);
-        allow write: if ehAdmin() || podeEscrever(empresaId);
+        allow write: if ehAdmin() || (podeEscrever(empresaId) && ehGestor(empresaId));
       }
 
       match /stands/{id} {
-        allow read: if ehAdmin() || pertenceA(empresaId);
-        allow write: if ehAdmin() || podeEscrever(empresaId);
+        allow read: if ehAdmin() || ehGestor(empresaId);
+        allow write: if ehAdmin() || (podeEscrever(empresaId) && ehGestor(empresaId));
       }
 
       match /diarias/{id} {
-        allow read: if ehAdmin() || pertenceA(empresaId);
-        allow write: if ehAdmin() || podeEscrever(empresaId);
+        allow read: if ehAdmin() || ehGestor(empresaId)
+          || (ehColaborador(empresaId) && resource.data.colaboradorId == minhaFicha());
+        allow write: if ehAdmin() || (podeEscrever(empresaId) && ehGestor(empresaId));
       }
 
       match /custos/{id} {
-        allow read: if ehAdmin() || pertenceA(empresaId);
-        allow write: if ehAdmin() || podeEscrever(empresaId);
+        allow read: if ehAdmin() || ehGestor(empresaId);
+        allow write: if ehAdmin() || (podeEscrever(empresaId) && ehGestor(empresaId));
       }
 
       match /vales/{id} {
-        allow read: if ehAdmin() || pertenceA(empresaId);
-        allow write: if ehAdmin() || podeEscrever(empresaId);
+        allow read: if ehAdmin() || ehGestor(empresaId)
+          || (ehColaborador(empresaId) && resource.data.colaboradorId == minhaFicha());
+        // O funcionário só PEDE: nasce SOLICITADO, no próprio nome, sem valor
+        // negativo e sem se auto-aprovar. Quem decide é o dono.
+        allow create: if ehAdmin()
+          || (podeEscrever(empresaId) && ehGestor(empresaId))
+          || (
+            ehColaborador(empresaId)
+            && request.resource.data.colaboradorId == minhaFicha()
+            && request.resource.data.status == 'SOLICITADO'
+            && request.resource.data.origemPedido == 'COLABORADOR'
+            && request.resource.data.valor is int
+            && request.resource.data.valor > 0
+            && request.resource.data.pagamentoId == null
+          );
+        // Desistir de um pedido que ainda não foi respondido.
+        allow delete: if ehAdmin()
+          || (podeEscrever(empresaId) && ehGestor(empresaId))
+          || (
+            ehColaborador(empresaId)
+            && resource.data.colaboradorId == minhaFicha()
+            && resource.data.status == 'SOLICITADO'
+          );
+        allow update: if ehAdmin() || (podeEscrever(empresaId) && ehGestor(empresaId));
       }
 
       match /pagamentos/{id} {
-        allow read: if ehAdmin() || pertenceA(empresaId);
-        allow write: if ehAdmin() || podeEscrever(empresaId);
+        allow read: if ehAdmin() || ehGestor(empresaId)
+          || (ehColaborador(empresaId) && resource.data.colaboradorId == minhaFicha());
+        allow write: if ehAdmin() || (podeEscrever(empresaId) && ehGestor(empresaId));
       }
     }
 

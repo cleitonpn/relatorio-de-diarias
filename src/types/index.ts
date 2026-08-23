@@ -85,10 +85,37 @@ export interface Usuario {
   nome: string
   email: string | null
   telefone: string | null
-  papel: Exclude<Papel, 'COLABORADOR'>
+  papel: Papel
   /** Encarregado só vê receita/lucro se o dono liberar. */
   vePainelFinanceiro: boolean
+  /** Preenchido quando o papel é COLABORADOR: liga o login à ficha na equipe. */
+  colaboradorId: string | null
   ativo: boolean
+  /** Código do convite usado para entrar — a regra do Firestore confere. */
+  convite: string | null
+  criadoEm: Timestamp
+}
+
+/* -------------------------------- Convites -------------------------------- */
+
+/**
+ * Convite de acesso.
+ *
+ * O código é o segredo: quem tem o link entra. Ele vive numa coleção própria
+ * porque a regra do Firestore precisa consultá-lo no momento em que a pessoa
+ * cria o próprio perfil — é o que impede alguém se apontar para uma empresa
+ * qualquer.
+ */
+export interface Convite {
+  id: string // o próprio código
+  empresaId: string
+  empresaNome: string
+  papel: Exclude<Papel, 'DONO'>
+  /** Só para COLABORADOR: qual ficha da equipe esse acesso representa. */
+  colaboradorId: string | null
+  colaboradorNome: string | null
+  usado: boolean
+  usadoPor: string | null
   criadoEm: Timestamp
 }
 

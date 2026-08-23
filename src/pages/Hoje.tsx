@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarDays, Check, Settings, Sun, Users, Wallet, X } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth, usePapel } from '@/contexts/AuthContext'
 import { useColaboradores, useDiariasDoDia, useFeiras } from '@/hooks/useDados'
 import { useIndice } from '@/hooks/useColecao'
 import { EspacoBarra } from '@/components/app/Navegacao'
@@ -22,6 +22,7 @@ import type { Diaria } from '@/types'
  */
 export function Hoje() {
   const { perfil, empresa } = useAuth()
+  const { veFinanceiro } = usePapel()
   const hoje = hojeISO()
   const { dados: diarias, carregando } = useDiariasDoDia(hoje)
   const { dados: equipe } = useColaboradores(false)
@@ -102,10 +103,12 @@ export function Hoje() {
                   de {resumo.total} {resumo.total === 1 ? 'pessoa' : 'pessoas'}
                 </span>
               </div>
-              <div className="mt-3 pt-3 border-t border-white/20 flex items-center justify-between">
-                <span className="text-[14px] text-white/80">Custo do dia</span>
-                <span className="tnum text-[20px] font-bold">{moeda(resumo.custo)}</span>
-              </div>
+              {veFinanceiro && (
+                <div className="mt-3 pt-3 border-t border-white/20 flex items-center justify-between">
+                  <span className="text-[14px] text-white/80">Custo do dia</span>
+                  <span className="tnum text-[20px] font-bold">{moeda(resumo.custo)}</span>
+                </div>
+              )}
             </div>
 
             {resumo.semMarcar > 0 && (
@@ -145,13 +148,15 @@ export function Hoje() {
               )
             })}
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className={cn('grid gap-2.5', veFinanceiro ? 'grid-cols-2' : 'grid-cols-1')}>
               <Link to="/pagamentos" className="btn-ghost">
                 <Wallet size={18} /> A pagar
               </Link>
-              <Link to="/dinheiro" className="btn-ghost">
-                Meu dinheiro
-              </Link>
+              {veFinanceiro && (
+                <Link to="/dinheiro" className="btn-ghost">
+                  Meu dinheiro
+                </Link>
+              )}
             </div>
 
             {empresa && (

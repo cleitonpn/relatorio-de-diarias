@@ -5,6 +5,7 @@ import {
   getDocs,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
   writeBatch,
@@ -307,4 +308,53 @@ export async function apagarFeira(empresaId: string, feiraId: string): Promise<v
     await batch.commit()
   }
   await deleteDoc(doc(colFeiras(empresaId), feiraId))
+}
+
+/* -------------------------------- Convites -------------------------------- */
+
+/** Código curto e legível ao telefone: sem 0/O nem 1/I. */
+function gerarCodigoConvite(): string {
+  const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const bytes = crypto.getRandomValues(new Uint32Array(8))
+  return [...bytes].map((n) => alfabeto[n % alfabeto.length]).join('')
+}
+
+/**
+ * Cria um convite de acesso.
+ *
+ * O código é o segredo — quem recebe o link entra. Por isso ele é longo o
+ * bastante para não ser adivinhado, e vale uma vez só.
+ */
+export async function criarConvite(dados: {
+  empresaId: string
+  empresaNome: string
+  papel: 'ENCARREGADO' | 'COLABORADOR'
+  colaboradorId?: string | null
+  colaboradorNome?: string | null
+}): Promise<string> {
+  const codigo = gerarCodigoConvite()
+  await setDoc(doc(db, 'convites', codigo), {
+    empresaId: dados.empresaId,
+    empresaNome: dados.empresaNome,
+    papel: dados.papel,
+    colaboradorId: dados.colaboradorId ?? null,
+    colaboradorNome: dados.colaboradorNome ?? null,
+    usado: false,
+    usadoPor: null,
+    criadoEm: agora(),
+  } as never)
+  return codigo
+}
+
+export async function apagarConvite(codigo: string) {
+  await deleteDoc(doc(db, 'convites', codigo))
+}
+
+/** O dono liga ou desliga o painel financeiro de um encarregado. */
+export async function definirAcessoFinanceiro(uid: string, libera: boolean) {
+  await updateDoc(doc(db, 'usuarios', uid), { vePainelFinanceiro: libera })
+}
+
+export async function desativarUsuario(uid: string, ativo: boolean) {
+  await updateDoc(doc(db, 'usuarios', uid), { ativo })
 }

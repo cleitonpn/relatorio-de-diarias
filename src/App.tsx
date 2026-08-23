@@ -13,11 +13,23 @@ import { MeuDinheiro } from '@/pages/MeuDinheiro'
 import { Pagamentos } from '@/pages/Pagamentos'
 import { Ajustes } from '@/pages/Ajustes'
 import { Admin } from '@/pages/Admin'
+import { EntrarPorConvite } from '@/pages/EntrarPorConvite'
+import { MinhaConta } from '@/pages/MinhaConta'
+import { Contador } from '@/pages/Contador'
 import { AdminSemConta } from '@/pages/AdminSemConta'
 import { useVales } from '@/hooks/useDados'
+import { usePapel } from '@/contexts/AuthContext'
 
 export function App() {
   const { carregando, usuarioAuth, perfil, precisaOnboarding, ehAdmin } = useAuth()
+
+  // O convite é público: quem recebe o link ainda não tem conta nem perfil.
+  const rotaConvite = (
+    <Routes>
+      <Route path="/convite/:codigo" element={<EntrarPorConvite />} />
+    </Routes>
+  )
+  if (window.location.pathname.startsWith('/convite/')) return rotaConvite
 
   if (carregando) return <CarregandoTela />
   if (!usuarioAuth) return <Entrar />
@@ -25,15 +37,21 @@ export function App() {
   if (precisaOnboarding) return ehAdmin ? <AdminSemConta /> : <Onboarding />
   if (!perfil) return <CarregandoTela />
 
+  // Funcionário tem um app próprio: só a vida dele, sem nada da gestão.
+  if (perfil.papel === 'COLABORADOR') return <MinhaConta />
+
   return <AreaLogada />
 }
 
 function AreaLogada() {
   const { dados: valesPendentes } = useVales('SOLICITADO')
+  // O encarregado enxerga o lucro só se o dono liberar. Esconder o menu é
+  // conveniência; quem barra de verdade são as regras do Firestore.
+  const { veFinanceiro } = usePapel()
 
   return (
     <div className="min-h-dvh bg-canvas">
-      <MenuLateral />
+      <MenuLateral veFinanceiro={veFinanceiro} />
       {/* Abre espaço para o menu lateral só a partir de tela grande */}
       <div className="lg:pl-64">
         <AvisoAssinatura />
@@ -41,15 +59,22 @@ function AreaLogada() {
           <Route path="/" element={<Hoje />} />
           <Route path="/feiras" element={<Feiras />} />
           <Route path="/feiras/:feiraId" element={<FeiraDetalhe />} />
-          <Route path="/dinheiro" element={<MeuDinheiro />} />
+          <Route
+            path="/dinheiro"
+            element={veFinanceiro ? <MeuDinheiro /> : <Navigate to="/" replace />}
+          />
           <Route path="/equipe" element={<Equipe />} />
           <Route path="/pagamentos" element={<Pagamentos />} />
           <Route path="/ajustes" element={<Ajustes />} />
+          <Route
+            path="/contador"
+            element={veFinanceiro ? <Contador /> : <Navigate to="/" replace />}
+          />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
-      <BarraInferior aviso={valesPendentes.length} />
+      <BarraInferior aviso={valesPendentes.length} veFinanceiro={veFinanceiro} />
     </div>
   )
 }

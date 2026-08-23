@@ -1,5 +1,5 @@
 import { FASES, type Centavos, type Custo, type DataISO, type Diaria, type Fase, type Feira, type Resultado, type Stand } from '@/types'
-import { dataCurta, diasEntre, periodo as periodo_ } from './format'
+import { dataCurta, diasEntre, isoParaData, periodo as periodo_, somarDias } from './format'
 
 /** Quanto uma diária custa de fato (valor congelado × multiplicador). */
 export function valorDaDiaria(d: Diaria): Centavos {
@@ -288,4 +288,31 @@ export function periodoDaFase(feira: Feira, fase: Fase): string | null {
   return periodo.inicio === periodo.fim
     ? dataCurta(periodo.inicio)
     : periodo_(periodo.inicio, periodo.fim)
+}
+
+/* --------------------- Data prevista de pagamento --------------------- */
+
+/**
+ * Quando o acerto daquela feira cai, segundo a política que o empreiteiro
+ * escolheu no cadastro. É o que o funcionário mais quer saber.
+ */
+export function dataPrevistaPagamento(feira: Feira, referencia: DataISO): DataISO | null {
+  switch (feira.politicaPagamento) {
+    case 'DIARIO':
+      return referencia
+    case 'SEMANAL_SEXTA': {
+      // Próxima sexta a partir do dia trabalhado (sexta paga no mesmo dia).
+      const d = isoParaData(referencia)
+      const faltam = (5 - d.getDay() + 7) % 7
+      return somarDias(referencia, faltam)
+    }
+    case 'FIM_MONTAGEM':
+      return feira.fases?.MONTAGEM?.fim ?? feira.dataFim
+    case 'FIM_FEIRA':
+      return feira.dataFim
+    case 'DATA_FIXA':
+      return feira.dataPagamentoFixa
+    default:
+      return null
+  }
 }

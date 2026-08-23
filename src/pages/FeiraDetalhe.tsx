@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { Building2, ChevronRight, Pencil, Plus, Receipt, Users } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAuth, usePapel } from '@/contexts/AuthContext'
 import { useCustos, useDiarias, useFeiras, useStands } from '@/hooks/useDados'
 import { BarraTopo, EspacoBarra } from '@/components/app/Navegacao'
 import { CarregandoTela, EstadoVazio } from '@/components/ui/Estados'
@@ -23,6 +23,7 @@ export function FeiraDetalhe() {
   const { feiraId } = useParams<{ feiraId: string }>()
   const [parametros, setParametros] = useSearchParams()
   const { perfil } = useAuth()
+  const { veFinanceiro } = usePapel()
   const { dados: feiras, carregando } = useFeiras()
   const feira = feiras.find((f) => f.id === feiraId) ?? null
 
@@ -30,7 +31,7 @@ export function FeiraDetalhe() {
   const { dados: diarias } = useDiarias(feiraId ?? null)
   const { dados: custos } = useCustos(feiraId ?? null)
 
-  const [aba, setAba] = useState<Aba>('resultado')
+  const [aba, setAba] = useState<Aba>(veFinanceiro ? 'resultado' : 'equipe')
   const [editandoFeira, setEditandoFeira] = useState(false)
   const [standAberto, setStandAberto] = useState<Stand | 'novo' | null>(null)
   const [custoAberto, setCustoAberto] = useState<Custo | 'novo' | null>(null)
@@ -77,10 +78,13 @@ export function FeiraDetalhe() {
   }
 
   const ABAS: { id: Aba; rotulo: string }[] = [
-    { id: 'resultado', rotulo: 'Resultado' },
+    // Receita e lucro só para quem tem acesso financeiro liberado.
+    ...(veFinanceiro ? [{ id: 'resultado' as Aba, rotulo: 'Resultado' }] : []),
     { id: 'equipe', rotulo: 'Equipe' },
     { id: 'gastos', rotulo: 'Gastos' },
-    ...(feira.modo === 'POR_STAND' ? [{ id: 'stands' as Aba, rotulo: 'Stands' }] : []),
+    ...(feira.modo === 'POR_STAND' && veFinanceiro
+      ? [{ id: 'stands' as Aba, rotulo: 'Stands' }]
+      : []),
   ]
 
   return (
@@ -124,7 +128,7 @@ export function FeiraDetalhe() {
       </div>
 
       <main className="max-w-2xl lg:max-w-3xl mx-auto px-4 pt-4">
-        {aba === 'resultado' && resultado && (
+        {aba === 'resultado' && resultado && veFinanceiro && (
           <AbaResultado
             resultado={resultado}
             almocoPadrao={feira.almocoPorPessoaDia}

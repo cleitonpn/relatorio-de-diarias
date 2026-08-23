@@ -134,3 +134,38 @@ export function useDiariasNoPeriodo(de: string, ate: string) {
     [empresaId, de, ate],
   )
 }
+
+/* ------------------- Leituras do próprio funcionário ------------------- */
+
+/**
+ * As diárias de uma pessoa só.
+ *
+ * O filtro por colaboradorId não é conveniência: a regra do Firestore exige
+ * que a consulta venha restrita, senão recusa a leitura.
+ */
+export function useMinhasDiarias(colaboradorId: string | null) {
+  const empresaId = useEmpresaIdOpcional()
+  return useColecao<Diaria>(
+    empresaId && colaboradorId ? colDiarias(empresaId) : null,
+    colaboradorId ? [where('colaboradorId', '==', colaboradorId)] : [],
+    [empresaId, colaboradorId],
+  )
+}
+
+export function useMeusPagamentos(colaboradorId: string | null) {
+  const empresaId = useEmpresaIdOpcional()
+  return useColecao<Pagamento>(
+    empresaId && colaboradorId ? colPagamentos(empresaId) : null,
+    colaboradorId ? [where('colaboradorId', '==', colaboradorId)] : [],
+    [empresaId, colaboradorId],
+  )
+}
+
+export function useMeusVales(colaboradorId: string | null) {
+  const empresaId = useEmpresaIdOpcional()
+  return useColecao<Vale>(
+    empresaId && colaboradorId ? colVales(empresaId) : null,
+    colaboradorId ? [where('colaboradorId', '==', colaboradorId)] : [],
+    [empresaId, colaboradorId],
+  )
+}

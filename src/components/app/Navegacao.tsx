@@ -54,11 +54,17 @@ const ABAS = [
   { para: '/pagamentos', rotulo: 'Pagar', Icone: HandCoins },
 ]
 
-export function BarraInferior({ aviso }: { aviso?: number }) {
+export function BarraInferior({ aviso, veFinanceiro = true }: { aviso?: number; veFinanceiro?: boolean }) {
+  const abas = veFinanceiro ? ABAS : ABAS.filter((a) => a.para !== '/dinheiro')
   return (
     <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-surface/95 backdrop-blur-xl border-t border-line safe-bottom">
-      <div className="max-w-2xl lg:max-w-3xl mx-auto grid grid-cols-5">
-        {ABAS.map(({ para, rotulo, Icone }) => (
+      <div
+        className={cn(
+          'max-w-2xl lg:max-w-3xl mx-auto grid',
+          abas.length === 5 ? 'grid-cols-5' : 'grid-cols-4',
+        )}
+      >
+        {abas.map(({ para, rotulo, Icone }) => (
           <NavLink
             key={para}
             to={para}
@@ -110,7 +116,10 @@ const ABAS_DESKTOP = [
  * O mesmo conjunto de destinos vira um menu lateral fixo, com espaço para o
  * rótulo por extenso.
  */
-export function MenuLateral() {
+export function MenuLateral({ veFinanceiro = true }: { veFinanceiro?: boolean }) {
+  const abas = veFinanceiro
+    ? ABAS_DESKTOP
+    : ABAS_DESKTOP.filter((a) => a.para !== '/dinheiro')
   return (
     <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-line bg-surface z-40">
       <div className="px-6 py-6 flex items-center gap-3">
@@ -127,7 +136,7 @@ export function MenuLateral() {
       </div>
 
       <nav className="flex-1 px-3 space-y-1">
-        {ABAS_DESKTOP.map(({ para, rotulo, Icone }) => (
+        {abas.map(({ para, rotulo, Icone }) => (
           <NavLink
             key={para}
             to={para}

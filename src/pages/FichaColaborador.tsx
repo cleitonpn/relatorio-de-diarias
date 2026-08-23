@@ -4,9 +4,15 @@ import { Sheet } from '@/components/ui/Sheet'
 import { Campo, CampoDinheiro, Selecao } from '@/components/ui/Campo'
 import { Avatar } from '@/components/ui/Avatar'
 import { useToast } from '@/components/app/Toast'
+import { ConviteAcesso } from '@/components/app/ConviteAcesso'
+import { useAuth } from '@/contexts/AuthContext'
 import { desativarColaborador, reativarColaborador, salvarColaborador } from '@/lib/acoes'
 import { validarChavePix } from '@/lib/pix'
 import type { Colaborador, TipoChavePix } from '@/types'
+
+function nomeCurtoDe(nome: string) {
+  return nome.trim().split(' ')[0] || 'a pessoa'
+}
 
 const TIPOS_CHAVE: { valor: TipoChavePix; rotulo: string; emoji: string }[] = [
   { valor: 'TELEFONE', rotulo: 'Celular', emoji: '📱' },
@@ -23,6 +29,7 @@ interface Props {
 
 export function FichaColaborador({ empresaId, colaborador, aoFechar }: Props) {
   const toast = useToast()
+  const { empresa } = useAuth()
   const novo = !colaborador
 
   const [nome, setNome] = useState(colaborador?.nome ?? '')
@@ -190,6 +197,25 @@ export function FichaColaborador({ empresaId, colaborador, aoFechar }: Props) {
             />
           </div>
         </div>
+
+        {!novo && colaborador && empresa && (
+          <div className="pt-2 border-t border-line">
+            <h3 className="text-[15px] font-bold mt-4 mb-1">Acesso ao app</h3>
+            <p className="text-[13px] text-muted mb-4 leading-relaxed">
+              Com o acesso, {nomeCurtoDe(nome)} vê os próprios dias e quanto tem a receber,
+              confere a chave PIX e pede adiantamento. Ele não vê valores de contrato nem o
+              seu lucro.
+            </p>
+            <ConviteAcesso
+              empresaId={empresaId}
+              empresaNome={empresa.nome}
+              papel="COLABORADOR"
+              colaboradorId={colaborador.id}
+              colaboradorNome={apelido.trim() || nome}
+              destinatario={nome}
+            />
+          </div>
+        )}
 
         {!novo && (
           <button

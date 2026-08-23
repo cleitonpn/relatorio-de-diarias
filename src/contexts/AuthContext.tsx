@@ -16,11 +16,19 @@ import {
   updateProfile,
   type User,
 } from 'firebase/auth'
-import { doc, getDoc, onSnapshot, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore'
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  updateDoc,
+} from 'firebase/firestore'
 import { auth, db, googleProvider } from '@/lib/firebase'
 import { docEmpresa, docUsuario } from '@/lib/db'
 import { DIAS_TESTE, gerarCodigoIndicacao } from '@/lib/planos'
-import type { Empresa, Usuario } from '@/types'
+import type { Convite, Empresa, Usuario } from '@/types'
 
 interface EstadoAuth {
   carregando: boolean
@@ -34,6 +42,8 @@ interface EstadoAuth {
   entrarComEmail: (email: string, senha: string) => Promise<void>
   criarContaComEmail: (nome: string, email: string, senha: string) => Promise<void>
   entrarComGoogle: () => Promise<void>
+  /** Entra numa empresa existente usando um código de convite. */
+  entrarComConvite: (codigo: string, nomePessoa: string) => Promise<void>
   criarEmpresa: (dados: {
     /** Nome do negócio. */
     nome: string
@@ -191,9 +201,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         telefone: null,
         papel: 'DONO',
         vePainelFinanceiro: true,
+        colaboradorId: null,
         ativo: true,
+        convite: null,
         criadoEm: serverTimestamp(),
       } as never)
+    },
+    [],
+  )
+
+  /**
+   * Aceita um convite: cria o perfil apontando para a empresa do convite e
+   * marca o convite como usado.
+   *
+   * A regra do Firestore confere o convite no ato da criação — o cliente não
+   * consegue se apontar para uma empresa que não o convidou.
+   */
+  const entrarComConvite = useCallback<EstadoAuth['entrarComConvite']>(
+    async (codigo, nomePessoa) => {
+      const user = auth.currentUser
+      if (!user) throw new Error('Sessão expirada. Entre de novo.')
+
+      const chave = codigo.trim().toUpperCase()
+      const conviteRef = doc(db, 'convites', chave)
+      const snap = await getDoc(conviteRef)
+      if (!snap.exists()) throw new Error('Convite não encontrado. Confira o código.')
+
+      const convite = snap.data() as Convite
+      if (convite.usado) throw new Error('Esse convite já foi usado.')
+
+      await setDoc(docUsuario(user.uid), {
+        empresaId: convite.empresaId,
+        nome: nomePessoa.trim() || convite.colaboradorNome || user.displayName || 'Sem nome',
+        email: user.email,
+        telefone: null,
+        papel: convite.papel,
+        vePainelFinanceiro: false,
+        colaboradorId: convite.colaboradorId ?? null,
+        ativo: true,
+        convite: chave,
+        criadoEm: serverTimestamp(),
+      } as never)
+
+      await updateDoc(conviteRef, { usado: true, usadoPor: user.uid })
     },
     [],
   )
@@ -215,6 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       entrarComEmail,
       criarContaComEmail,
       entrarComGoogle,
+      entrarComConvite,
       criarEmpresa,
       sair,
     }),
@@ -229,6 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       entrarComEmail,
       criarContaComEmail,
       entrarComGoogle,
+      entrarComConvite,
       criarEmpresa,
       sair,
     ],
@@ -248,6 +300,19 @@ export function useEmpresaId(): string {
   const { perfil } = useAuth()
   if (!perfil?.empresaId) throw new Error('Sem empresa ativa')
   return perfil.empresaId
+}
+
+/** Papéis, para as telas decidirem o que mostrar. */
+export function usePapel() {
+  const { perfil } = useAuth()
+  return {
+    ehDono: perfil?.papel === 'DONO',
+    ehEncarregado: perfil?.papel === 'ENCARREGADO',
+    ehColaborador: perfil?.papel === 'COLABORADOR',
+    ehGestor: perfil?.papel === 'DONO' || perfil?.papel === 'ENCARREGADO',
+    /** O dono sempre vê; o encarregado só se ele liberar. */
+    veFinanceiro: perfil?.papel === 'DONO' || !!perfil?.vePainelFinanceiro,
+  }
 }
 
 /** Se o perfil pode lançar coisa nova (assinatura em dia). */
